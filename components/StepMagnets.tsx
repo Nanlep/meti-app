@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { generateLeadMagnets, generateMagnetContent, generateMagnetPromo } from '../services/geminiService';
 import { PersonaProfile, LeadMagnet, AdPlatform } from '../types';
@@ -70,7 +69,7 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
     setPublishStep(1);
     // Simulate Smart Link Generation
     const slug = magnet.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    setGeneratedLink(`https://meti.app/dl/${slug}`);
+    setGeneratedLink(`https://meti.pro/dl/${slug}`);
     setSelectedPlatforms([]);
     setPromoContent({});
   };

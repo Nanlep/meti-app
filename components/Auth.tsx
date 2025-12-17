@@ -50,7 +50,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   const useDevCreds = (type: 'admin' | 'user') => {
-      setEmail(type === 'admin' ? 'admin@meti.app' : 'user@meti.app');
+      setEmail(type === 'admin' ? 'admin@meti.pro' : 'user@meti.pro');
       setPassword('password');
   };
 

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal } from './Shared';
 
 interface LegalModalProps {
@@ -36,7 +36,7 @@ export const LegalDocs: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) 
             <p>We use industry-standard encryption (AES-256) for data at rest and TLS 1.3 for data in transit. Your payment information is handled exclusively by Stripe; we do not store credit card details.</p>
 
             <h4>4. Contact</h4>
-            <p>For privacy concerns, please contact privacy@meti.app.</p>
+            <p>For privacy concerns, please contact contact@meti.pro.</p>
           </>
         )}
         

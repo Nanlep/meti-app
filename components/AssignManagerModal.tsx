@@ -80,7 +80,7 @@ export const AssignManagerModal: React.FC<AssignManagerModalProps> = ({ isOpen, 
                             required 
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="officer@meti.app"
+                            placeholder="officer@meti.pro"
                             className="w-full bg-slate-950 border border-slate-700 rounded pl-9 pr-3 py-2 text-white outline-none focus:border-indigo-500"
                         />
                     </div>

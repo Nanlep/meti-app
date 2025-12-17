@@ -385,7 +385,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
             <button onClick={() => setLegalType('privacy')} className="hover:text-white transition-colors">Privacy</button>
             <button onClick={() => setLegalType('terms')} className="hover:text-white transition-colors">Terms</button>
             <button onClick={() => setLegalType('security')} className="hover:text-white transition-colors">Security</button>
-            <a href="mailto:hello@meti.app" className="hover:text-white transition-colors">Contact</a>
+            <a href="mailto:contact@meti.pro" className="hover:text-white transition-colors">Contact</a>
           </div>
         </div>
       </footer>

@@ -65,7 +65,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({ isOpen, onClos
             Authenticate using the <code>Authorization: Bearer</code> header.
           </p>
           <div className="bg-slate-950 p-3 rounded border border-slate-800 font-mono text-xs text-slate-300 overflow-x-auto">
-            curl -X POST https://api.meti.app/v1/persona \<br/>
+            curl -X POST https://api.meti.pro/v1/persona \<br/>
             &nbsp;&nbsp;-H "Authorization: Bearer sk_live_..." \<br/>
             &nbsp;&nbsp;-H "Content-Type: application/json" \<br/>
             &nbsp;&nbsp;-d '{"product": "CRM", "niche": "Real Estate"}'

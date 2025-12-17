@@ -174,7 +174,7 @@ export const StepCRM: React.FC<StepCRMProps> = ({ data, onUpdateLeads, onUpdateC
   };
 
   const generateGoogleSheet = () => {
-    const headers = ['ID', 'Company', 'Contact', 'Email', 'Source', 'Stage', 'Value ($)', 'Probability (%)', 'Notes', 'Added Date'];
+    const headers = ['ID', 'Company', 'Contact', 'Email', 'Source', 'Stage', 'Value (NGN)', 'Probability (%)', 'Notes', 'Added Date'];
     const rows = leads.map(l => {
       let dateStr = 'N/A';
       try { dateStr = new Date(l.addedAt).toLocaleDateString(); } catch(e) {}
@@ -249,7 +249,7 @@ export const StepCRM: React.FC<StepCRMProps> = ({ data, onUpdateLeads, onUpdateC
             <div className="flex items-center gap-4">
                 <div className="hidden lg:block text-right">
                    <div className="text-xs text-slate-400 uppercase font-bold">Weighted Forecast</div>
-                   <div className="text-xl font-mono text-emerald-400 font-bold">${pipelineStats.weightedValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+                   <div className="text-xl font-mono text-emerald-400 font-bold">₦{pipelineStats.weightedValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
                 </div>
                 <div className="h-8 w-px bg-slate-700 hidden lg:block"></div>
                 
@@ -295,7 +295,7 @@ export const StepCRM: React.FC<StepCRMProps> = ({ data, onUpdateLeads, onUpdateC
                                 </h3>
                             </div>
                             <div className="text-xs font-mono text-emerald-400 font-bold bg-emerald-900/10 px-2 py-1 rounded border border-emerald-900/20">
-                                ${stageTotal.toLocaleString(undefined, { compactDisplay: "short", notation: "compact" })}
+                                ₦{stageTotal.toLocaleString(undefined, { compactDisplay: "short", notation: "compact" })}
                             </div>
                         </div>
                         <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
@@ -320,7 +320,7 @@ export const StepCRM: React.FC<StepCRMProps> = ({ data, onUpdateLeads, onUpdateC
                                         
                                         <div className="flex items-center justify-between text-xs mt-3 pt-3 border-t border-slate-700/50">
                                             <div className="text-white font-medium flex items-center gap-1 bg-slate-700/50 px-2 py-1 rounded">
-                                                <DollarSign size={10} className="text-emerald-400" /> {lead.value.toLocaleString()}
+                                                <span className="text-emerald-400 font-sans">₦</span> {lead.value.toLocaleString()}
                                             </div>
                                             <div className={`font-bold flex items-center gap-1 ${lead.probability > 70 ? 'text-emerald-400' : lead.probability > 30 ? 'text-amber-400' : 'text-red-400'}`}>
                                                 {lead.probability}% <span className="text-[10px] text-slate-500 font-normal">Prob.</span>
@@ -451,7 +451,7 @@ export const StepCRM: React.FC<StepCRMProps> = ({ data, onUpdateLeads, onUpdateC
                 </div>
               </div>
               <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Estimated Deal Value ($)</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Estimated Deal Value (NGN)</label>
                   <input 
                     type="number" 
                     min="0"
@@ -495,7 +495,7 @@ export const StepCRM: React.FC<StepCRMProps> = ({ data, onUpdateLeads, onUpdateC
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Deal Value ($)</label>
+                        <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Deal Value (NGN)</label>
                         <input 
                             type="number" 
                             min="0"

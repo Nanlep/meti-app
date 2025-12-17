@@ -46,7 +46,7 @@ REDIS_URL=redis://localhost:6379
 API_KEY=your_gemini_api_key
 
 # Integrations (Required for "Execution" features)
-STRIPE_SECRET_KEY=sk_test_...
+PAYSTACK_SECRET_KEY=sk_test_...
 SENDGRID_API_KEY=SG....
 AYRSHARE_API_KEY=ayr_...
 ```
@@ -81,7 +81,7 @@ The application is configured for **Zero-Downtime Deployment**.
 | :--- | :--- | :--- |
 | **AI Strategy** | Google Gemini | `API_KEY` (Paid tier recommended for rate limits) |
 | **Lead Scout** | Google Maps | Enable **Places API (New)** in GCP Console |
-| **Payments** | Stripe | `STRIPE_SECRET_KEY` (Subscription Products) |
+| **Payments** | Paystack | `PAYSTACK_SECRET_KEY` (Standard Payments) |
 | **Email Ops** | SendGrid | `SENDGRID_API_KEY` + Verified Sender Identity |
 | **Social Posting**| Ayrshare | `AYRSHARE_API_KEY` (Aggregator for LinkedIn/X/FB) |
 

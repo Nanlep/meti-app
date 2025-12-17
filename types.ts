@@ -32,7 +32,7 @@ export interface AccountManager {
 
 export interface UserUsage {
   tokensUsed: number;
-  costEstimate: number; // In USD
+  costEstimate: number; // In Local Currency (NGN)
   periodStart: number;
 }
 

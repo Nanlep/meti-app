@@ -139,7 +139,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
           </Button>
           <Button onClick={handleCreateClick} className={isLimitReached ? "bg-indigo-600 hover:bg-indigo-700" : ""}>
              {isLimitReached ? <CreditCard size={18} className="mr-2" /> : <Plus size={18} className="mr-2" />}
-             {isLimitReached ? `New Project ($${additionalCost.toFixed(2)})` : 'New Project'}
+             {isLimitReached ? `New Project (₦${additionalCost.toLocaleString()})` : 'New Project'}
           </Button>
         </div>
       </div>
@@ -266,10 +266,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
             </div>
             <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 flex justify-between items-center">
                <span className="text-slate-300">One-time Project Fee</span>
-               <span className="text-xl font-bold text-white">${additionalCost.toFixed(2)}</span>
+               <span className="text-xl font-bold text-white">₦{additionalCost.toLocaleString()}</span>
             </div>
             <Button onClick={confirmPaymentAndCreate} disabled={processingPayment} className="w-full py-3">
-                {processingPayment ? <Loader className="animate-spin" /> : `Pay $${additionalCost.toFixed(2)} & Create`}
+                {processingPayment ? <Loader className="animate-spin" /> : `Pay ₦${additionalCost.toLocaleString()} & Create`}
             </Button>
          </div>
       </Modal>

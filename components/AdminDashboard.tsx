@@ -212,7 +212,7 @@ export const AdminDashboard: React.FC = () => {
                     <span className="text-slate-400 text-sm font-medium">Est. MRR</span>
                     <DollarSign size={20} className="text-emerald-400" />
                   </div>
-                  <div className="text-3xl font-bold text-white">${stats.revenueMRR.toLocaleString()}</div>
+                  <div className="text-3xl font-bold text-white">₦{stats.revenueMRR.toLocaleString()}</div>
                   <div className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
                     <TrendingUp size={12} /> +4% this month
                   </div>

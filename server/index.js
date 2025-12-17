@@ -53,7 +53,7 @@ if (!process.env.API_KEY || !process.env.MONGODB_URI || !process.env.JWT_SECRET)
 }
 
 const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+// Paystack integration uses native fetch, requires PAYSTACK_SECRET_KEY in env
 if (process.env.SENDGRID_API_KEY) sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const redisClient = new Redis(process.env.REDIS_URL, {
@@ -84,8 +84,8 @@ if (cluster.isPrimary && process.env.NODE_ENV === 'production') {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://generativelanguage.googleapis.com", process.env.CLIENT_URL],
-        frameSrc: ["'self'", "https://js.stripe.com"]
+        connectSrc: ["'self'", "https://generativelanguage.googleapis.com", process.env.CLIENT_URL, "https://api.paystack.co"],
+        frameSrc: ["'self'", "https://js.paystack.co"]
       }
     }
   }));
@@ -367,18 +367,59 @@ if (cluster.isPrimary && process.env.NODE_ENV === 'production') {
     }
   });
 
+  // Paystack Integration
   app.post('/api/create-checkout-session', authenticateToken, async (req, res) => {
-    if (!stripe) return res.status(503).json({ error: "Billing unconfigured" });
+    if (!process.env.PAYSTACK_SECRET_KEY) return res.status(503).json({ error: "Billing unconfigured" });
+    
     try {
-      const session = await stripe.checkout.sessions.create({
-        line_items: [{ price: req.body.planName === 'Pro' ? process.env.STRIPE_PRICE_PRO : process.env.STRIPE_PRICE_AGENCY, quantity: 1 }],
-        mode: 'subscription',
-        success_url: `${process.env.CLIENT_URL}?payment=success&plan=${req.body.planName}`,
-        cancel_url: `${process.env.CLIENT_URL}?payment=cancelled`,
-        metadata: { userId: req.user.id }
+      // Get User Email for Paystack
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const { planName } = req.body;
+      
+      // Define plan amounts in Kobo (100 Kobo = 1 Naira)
+      // Exchange Rate: $1 = N1500
+      // Pro ($29.80): N44,700 | Agency ($198.90): N298,350
+      const amounts = {
+        'Pro': 4470000, 
+        'Agency': 29835000
+      };
+
+      const amount = amounts[planName];
+      if (!amount) return res.status(400).json({ error: "Invalid plan" });
+
+      const params = JSON.stringify({
+        email: user.email,
+        amount: amount,
+        callback_url: `${process.env.CLIENT_URL}?payment=success&plan=${planName}`,
+        metadata: {
+          user_id: req.user.id,
+          plan: planName,
+          custom_fields: [
+            { display_name: "Plan Name", variable_name: "plan_name", value: planName }
+          ]
+        }
       });
-      res.json({ url: session.url });
+
+      const response = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: params
+      });
+
+      const data = await response.json();
+
+      if (!data.status) {
+        throw new Error(data.message || "Paystack initialization failed");
+      }
+
+      res.json({ url: data.data.authorization_url });
     } catch (e) {
+      logger.error("Paystack Error", e);
       res.status(500).json({ error: "Payment init failed" });
     }
   });

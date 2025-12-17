@@ -34,7 +34,7 @@ export const StepPricing: React.FC = () => {
       if (url) {
         window.location.href = url;
       } else {
-        throw new Error("No checkout URL returned");
+        throw new Error("No payment URL returned");
       }
     } catch (error: any) {
       notify.error(error.message || "Payment Gateway Error");
@@ -45,11 +45,11 @@ export const StepPricing: React.FC = () => {
   const plans = [
     {
       name: 'Starter', 
-      price: '$0',
+      price: '₦0',
       period: '/ month',
       description: 'Pay-as-you-go. No monthly commitment.',
       features: ['Pay Per Project Session', 'AI Persona & Niche Analysis', 'Basic Lead Magnets', 'Ad Engine (Lite)', 'Sales Simulator'],
-      extraInfo: 'Single Session: $9.80',
+      extraInfo: 'Single Session: ₦14,700',
       notIncluded: ['Advanced SEO Suite', 'Lead Scout (Real-time Maps)', 'Agency Features', 'Team Collaboration'],
       cta: 'Current Plan',
       variant: 'outline' as const,
@@ -58,12 +58,12 @@ export const StepPricing: React.FC = () => {
     },
     {
       name: 'Pro',
-      price: '$29.80',
+      price: '₦44,700',
       period: '/ month',
       popular: true,
       description: 'For power users launching multiple campaigns monthly.',
       features: ['5 Projects Included', 'Full SEO Suite (Audits, Keywords)', 'Real-time Google Maps Leads', 'Live Content Optimization', 'Multi-Channel Ad Engine', 'Landing Page Generator'],
-      extraInfo: 'Additional projects: $9.80 / each',
+      extraInfo: 'Additional projects: ₦14,700 / each',
       notIncluded: ['White-label Reports', 'Client Management CRM', 'Team Collaboration'],
       cta: 'Get Pro Access',
       variant: 'primary' as const,
@@ -72,11 +72,11 @@ export const StepPricing: React.FC = () => {
     },
     {
       name: 'Agency',
-      price: '$198.90',
+      price: '₦298,350',
       period: '/ month',
       description: 'The ultimate OS for scaling agencies managing multiple clients.',
       features: ['25 Projects Included', 'Client Management Dashboard', 'White-label SEO & Strategy Reports', 'CMS Integrations', '5 Team Member Seats Included', 'Developer API Access'],
-      extraInfo: 'Additional projects: $7.80 / each',
+      extraInfo: 'Additional projects: ₦11,000 / each',
       notIncluded: [],
       cta: 'Get Agency Access',
       variant: 'secondary' as const,
@@ -89,7 +89,7 @@ export const StepPricing: React.FC = () => {
     <div className="max-w-6xl mx-auto animate-fadeIn">
       <div className="text-center max-w-2xl mx-auto mb-12">
         <h2 className="text-3xl font-bold text-white mb-4">Choose Your Growth Engine</h2>
-        <p className="text-slate-400 text-lg">Flexible pricing. Secure payments via Stripe.</p>
+        <p className="text-slate-400 text-lg">Flexible pricing. Secure payments via Paystack.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
@@ -139,7 +139,7 @@ export const StepPricing: React.FC = () => {
               </Button>
               
               <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-500">
-                 <div className="flex items-center gap-1"><CreditCard size={10} /> Stripe Secured</div>
+                 <div className="flex items-center gap-1"><CreditCard size={10} /> Secured by Paystack</div>
               </div>
             </Card>
           </div>

@@ -21,11 +21,19 @@ export const adminService = {
       const users = await adminService.getAllUsers();
       const estimatedProjects = users.length * 2; 
 
+      // Revenue Calculation based on new NGN Pricing
+      // Pro: ₦44,700 | Agency: ₦298,350
+      const revenueMRR = users.reduce((acc, user) => {
+        if (user.subscription === 'pro') return acc + 44700;
+        if (user.subscription === 'agency') return acc + 298350;
+        return acc;
+      }, 0);
+
       return {
         totalUsers: users.length,
         totalProjects: estimatedProjects,
         activeNow: Math.floor(users.length * 0.2) + 1, 
-        revenueMRR: users.filter(u => u.subscription !== 'hobby').length * 199,
+        revenueMRR: revenueMRR,
         apiCallsToday: users.length * 15
       };
     } catch (e) {

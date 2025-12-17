@@ -332,7 +332,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
             />
             <FAQItem 
               question="How does the pricing model work?" 
-              answer="We offer a flexible model to suit different stages. The **Starter** plan is 'Pay-As-You-Go', meaning you only pay $9.80 per project session with no monthly fees. The **Pro** ($29.80/mo) and **Agency** ($198.90/mo) plans are subscription-based, offering included project credits and advanced features."
+              answer="We offer a flexible model to suit different stages. The **Starter** plan is 'Pay-As-You-Go', meaning you only pay ₦14,700 per project session with no monthly fees. The **Pro** (₦44,700/mo) and **Agency** (₦298,350/mo) plans are subscription-based, offering included project credits and advanced features."
             />
             <FAQItem 
               question="What is a 'Project Session'?" 
@@ -344,11 +344,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
             />
             <FAQItem 
               question="Can I use Meti for my clients (Agency Use)?" 
-              answer="Absolutely. The Agency Plan ($198.90/mo) is designed specifically for this. It allows you to create separate 'Client' workspaces, manage up to 25 different projects, and generate White-Label Reports. You can export strategies as PDF or Markdown without the Meti branding, allowing you to resell the strategy work directly to your clients."
+              answer="Absolutely. The Agency Plan (₦298,350/mo) is designed specifically for this. It allows you to create separate 'Client' workspaces, manage up to 25 different projects, and generate White-Label Reports. You can export strategies as PDF or Markdown without the Meti branding, allowing you to resell the strategy work directly to your clients."
             />
             <FAQItem 
               question="What is the difference between Starter and Pro?" 
-              answer="The Starter plan is usage-based ($9.80 per project) and ideal for solo founders launching occasionally. The Pro Plan ($29.80/mo) is for active marketers; it includes 5 projects per month and unlocks the Execution Engine: Real-time Lead Scouting on Maps, SEO Audits, and multi-channel Ad Generation."
+              answer="The Starter plan is usage-based (₦14,700 per project) and ideal for solo founders launching occasionally. The Pro Plan (₦44,700/mo) is for active marketers; it includes 5 projects per month and unlocks the Execution Engine: Real-time Lead Scouting on Maps, SEO Audits, and multi-channel Ad Generation."
             />
             <FAQItem 
               question="How do I start using the app?" 
@@ -448,7 +448,7 @@ const MethodologyCard = ({ step, title, icon, desc, impact, isFinal }: any) => (
 const RevenueSimulator = () => {
     const [leads, setLeads] = useState(100);
     const [conversion, setConversion] = useState(2);
-    const [price, setPrice] = useState(500);
+    const [price, setPrice] = useState(75000);
 
     // Multipliers aligned with "3x" Claim
     const LEAD_MULTIPLIER = 1.8; // Better targeting = more qualified leads
@@ -525,19 +525,19 @@ const RevenueSimulator = () => {
                 {/* Price Input */}
                 <div>
                     <div className="flex justify-between text-sm mb-2">
-                        <label className="text-slate-400">Avg Deal Size ($)</label>
+                        <label className="text-slate-400">Avg Deal Size (₦)</label>
                         <input 
                             type="number" 
                             value={price} 
                             onChange={e => setPrice(Math.max(0, Number(e.target.value)))}
-                            className="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-right text-white font-bold text-xs outline-none focus:border-indigo-500"
+                            className="w-32 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-right text-white font-bold text-xs outline-none focus:border-indigo-500"
                         />
                     </div>
                     <input 
                       type="range" 
-                      min="50" 
-                      max="10000" 
-                      step="50" 
+                      min="10000" 
+                      max="1000000000" 
+                      step="10000" 
                       value={price} 
                       onChange={e => setPrice(Number(e.target.value))} 
                       className="w-full accent-indigo-500 h-2 bg-slate-700 rounded-lg cursor-pointer" 
@@ -549,7 +549,7 @@ const RevenueSimulator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-800 pt-6">
                 <div className="text-center p-3 rounded-xl bg-slate-800/30">
                     <div className="text-xs text-slate-500 font-bold uppercase mb-1">Current Revenue</div>
-                    <div className="text-xl font-bold text-slate-300">${currentRevenue.toLocaleString()}</div>
+                    <div className="text-xl font-bold text-slate-300">₦{currentRevenue.toLocaleString()}</div>
                     <div className="text-[10px] text-slate-500 mt-1">{leads} leads @ {conversion}%</div>
                 </div>
                 <div className="text-center relative p-3 rounded-xl bg-emerald-900/10 border border-emerald-500/20">
@@ -557,8 +557,8 @@ const RevenueSimulator = () => {
                         {multiplier}x MULTIPLIER
                     </div>
                     <div className="text-xs text-emerald-400 font-bold uppercase mb-1">Projected Revenue</div>
-                    <div className="text-2xl font-bold text-white">${metiRevenue.toLocaleString()}</div>
-                    <div className="text-[10px] text-emerald-400/70 mt-1">+{growth.toLocaleString()} Growth</div>
+                    <div className="text-2xl font-bold text-white">₦{metiRevenue.toLocaleString()}</div>
+                    <div className="text-[10px] text-emerald-400/70 mt-1">+₦{growth.toLocaleString()} Growth</div>
                 </div>
             </div>
         </div>

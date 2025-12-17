@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button, Card, SectionTitle } from './Shared';
-import { ArrowRight, Box, Briefcase, Link as LinkIcon, DollarSign, Plus, Lock } from 'lucide-react';
+import { ArrowRight, Box, Briefcase, Link as LinkIcon, Plus, Lock } from 'lucide-react';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
 import { Client } from '../types';
@@ -143,13 +143,13 @@ export const StepSetup: React.FC<StepSetupProps> = ({
                 min="0"
                 value={productPrice || ''}
                 onChange={(e) => setProductPrice(Number(e.target.value))}
-                placeholder="49"
+                placeholder="49000"
                 disabled={isLocked}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 pl-10 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               />
-               <DollarSign className="absolute left-3 top-3.5 text-slate-500" size={18} />
+               <span className="absolute left-3 top-3.5 text-slate-500 font-sans font-bold text-lg">₦</span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">Used to calculate potential revenue & ROI.</p>
+            <p className="text-[10px] text-slate-500 mt-1">Used to calculate potential revenue & ROI (NGN).</p>
           </div>
         </div>
 

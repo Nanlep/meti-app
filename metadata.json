@@ -1,0 +1,8 @@
+{
+  "name": "Meti",
+  "description": "Meti (Marketing Intelligence) is an AI-powered end-to-end strategist that helps define niches, identify personas, generate lead magnets, and script sales qualification.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ]
+}

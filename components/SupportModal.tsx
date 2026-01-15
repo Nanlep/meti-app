@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Button, Card, Spinner } from './Shared';
-import { MessageSquare, Plus, CheckCircle2, Clock, XCircle, Send, ChevronLeft, AlertCircle, FileText, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Plus, CheckCircle2, Clock, XCircle, Send, ChevronLeft, AlertCircle, FileText, User as UserIcon, Mail } from 'lucide-react';
 import { User, Ticket, TicketCategory, TicketPriority } from '../types';
 import { supportService } from '../services/supportService';
 import { notify } from '../services/notificationService';
@@ -23,6 +23,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, use
   const [category, setCategory] = useState<TicketCategory>('technical');
   const [priority, setPriority] = useState<TicketPriority>('medium');
   const [message, setMessage] = useState('');
+  const [userEmail, setUserEmail] = useState(user.email); // New Field
   const [creating, setCreating] = useState(false);
 
   // Reply State
@@ -34,8 +35,9 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, use
     if (isOpen) {
       loadTickets();
       setView('list');
+      setUserEmail(user.email); // Reset email to current user when opening
     }
-  }, [isOpen]);
+  }, [isOpen, user.email]);
 
   useEffect(() => {
     if (view === 'detail') {
@@ -50,7 +52,11 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, use
       setTickets(data);
     } catch (e) {
       console.error(e);
-      notify.error("Failed to load support tickets");
+      // Empty state is handled by UI, don't spam error toast if it's just empty or 404 on first run
+      // But critical errors should be shown
+      if ((e as Error).message !== 'Failed to fetch tickets') {
+         notify.error("Failed to load support tickets");
+      }
     } finally {
       setLoading(false);
     }
@@ -58,14 +64,15 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, use
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject || !message) return;
+    if (!subject || !message || !userEmail) return;
     setCreating(true);
     try {
       await supportService.createTicket({
         subject,
         category,
         priority,
-        initialMessage: message
+        initialMessage: message,
+        userEmail // Pass this to backend
       });
       notify.success("Ticket created successfully");
       setSubject('');
@@ -214,16 +221,39 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, use
                 <h3 className="font-bold text-white text-xl mb-6">Submit a Request</h3>
                 
                 <div className="space-y-4 flex-1">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Subject</label>
-                        <input 
-                            type="text" 
-                            required
-                            value={subject}
-                            onChange={(e) => setSubject(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
-                            placeholder="Brief summary of the issue"
-                        />
+                    
+                    {/* Read-Only Support Email */}
+                    <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 flex items-center gap-3">
+                        <Mail className="text-indigo-400" size={18} />
+                        <div>
+                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Official Support Channel</div>
+                            <div className="text-sm text-slate-300 font-mono">contact@meti.pro</div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Your Contact Email</label>
+                            <input 
+                                type="email" 
+                                required
+                                value={userEmail}
+                                onChange={(e) => setUserEmail(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
+                                placeholder="name@company.com"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Subject</label>
+                            <input 
+                                type="text" 
+                                required
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
+                                placeholder="Brief summary of the issue"
+                            />
+                        </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
@@ -262,7 +292,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, use
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             className="w-full h-40 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500 resize-none"
-                            placeholder="Please provide details..."
+                            placeholder="Please provide details about your issue..."
                         />
                     </div>
                 </div>

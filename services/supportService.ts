@@ -16,7 +16,7 @@ export const supportService = {
     return await response.json();
   },
 
-  createTicket: async (data: { subject: string; category: TicketCategory; priority: TicketPriority; initialMessage: string }): Promise<Ticket> => {
+  createTicket: async (data: { subject: string; category: TicketCategory; priority: TicketPriority; initialMessage: string; userEmail: string }): Promise<Ticket> => {
     const response = await fetch(`${getApiUrl()}/api/tickets`, {
       method: 'POST',
       headers: getHeaders(),

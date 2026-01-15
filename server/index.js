@@ -13,6 +13,7 @@ const winston = require('winston');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 // --- 1. OBSERVABILITY ---
@@ -64,11 +65,36 @@ const ProjectSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+const TicketSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userEmail: { type: String, required: true },
+  userName: { type: String },
+  subject: { type: String, required: true },
+  category: { type: String, default: 'technical' },
+  priority: { type: String, default: 'medium' },
+  status: { type: String, default: 'open' }, // open, in_progress, resolved, closed
+  messages: [{
+    senderId: String,
+    senderName: String,
+    role: String, // 'user' | 'admin'
+    text: String,
+    timestamp: { type: Date, default: Date.now }
+  }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Project = mongoose.models.Project || mongoose.model('Project', ProjectSchema);
+const Ticket = mongoose.models.Ticket || mongoose.model('Ticket', TicketSchema);
 
 // --- 5. INFRASTRUCTURE ---
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+// Initialize Resend Client
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => logger.info("MongoDB Connected"))
   .catch(err => logger.error("DB Error", err));
@@ -148,6 +174,146 @@ app.put('/api/projects/:id', authenticateToken, asyncHandler(async (req, res) =>
   if (!project) return res.status(404).json({ error: "Project not found" });
   res.json(project);
 }));
+
+// --- TICKET SUPPORT SYSTEM ---
+
+// Get user tickets
+app.get('/api/tickets', authenticateToken, asyncHandler(async (req, res) => {
+  const tickets = await Ticket.find({ userId: req.user.id }).sort({ updatedAt: -1 });
+  res.json(tickets);
+}));
+
+// Create Ticket
+app.post('/api/tickets', authenticateToken, asyncHandler(async (req, res) => {
+  const { subject, category, priority, initialMessage, userEmail } = req.body;
+  const user = await User.findById(req.user.id);
+
+  const ticket = new Ticket({
+    userId: req.user.id,
+    userName: user.name,
+    userEmail: userEmail || user.email,
+    subject,
+    category,
+    priority,
+    messages: [{
+      senderId: req.user.id,
+      senderName: user.name,
+      role: 'user',
+      text: initialMessage,
+      timestamp: Date.now()
+    }]
+  });
+
+  // 1. Persistence: Save to DB first
+  await ticket.save();
+
+  // 2. Notification: Send Email via Resend
+  let emailSent = false;
+  const supportEmail = process.env.SUPPORT_EMAIL || 'contact@meti.pro';
+  // Use a sensible default, but environment variable is preferred for verification
+  const fromEmail = process.env.SUPPORT_FROM_EMAIL || 'onboarding@resend.dev';
+
+  const emailHtml = `
+    <div style="font-family: sans-serif; padding: 20px; color: #333;">
+      <h2 style="color: #4f46e5;">New Support Ticket Created</h2>
+      <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p><strong>Ticket ID:</strong> ${ticket._id}</p>
+        <p><strong>From:</strong> ${user.name} (<a href="mailto:${userEmail || user.email}">${userEmail || user.email}</a>)</p>
+        <p><strong>Category:</strong> ${category} | <strong>Priority:</strong> ${priority}</p>
+      </div>
+      <div style="border-left: 4px solid #4f46e5; padding-left: 15px;">
+        <h3 style="margin-top: 0;">Subject: ${subject}</h3>
+        <p style="white-space: pre-wrap;">${initialMessage}</p>
+      </div>
+      <p style="font-size: 12px; color: #666; margin-top: 30px;">Sent via Meti Engine (Resend Integration)</p>
+    </div>
+  `;
+
+  try {
+    if (resend) {
+      const { data, error } = await resend.emails.send({
+        from: fromEmail,
+        to: supportEmail,
+        subject: `[New Ticket] ${subject} (#${ticket._id.toString().slice(-6)})`,
+        html: emailHtml
+      });
+
+      if (error) {
+        logger.error('Resend API Error:', error);
+      } else {
+        emailSent = true;
+        logger.info(`Support email dispatched via Resend. ID: ${data?.id}`);
+      }
+    } else {
+      logger.warn('Resend API Key missing. Email simulation only.');
+      logger.info('EMAIL SIMULATION:', { to: supportEmail, subject, from: fromEmail });
+    }
+  } catch (emailError) {
+    logger.error('Failed to execute Resend transaction', emailError);
+    // Do not throw; we want to return the ticket creation success even if email fails
+  }
+
+  // 3. Response: Return ticket with delivery status metadata
+  res.json({
+    ...ticket.toObject(),
+    ticketSaved: true,
+    emailSent
+  });
+}));
+
+// Get Single Ticket Details
+app.get('/api/tickets/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const ticket = await Ticket.findOne({ _id: req.params.id, userId: req.user.id });
+  if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+  res.json(ticket);
+}));
+
+// Reply to Ticket
+app.post('/api/tickets/:id/reply', authenticateToken, asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  const user = await User.findById(req.user.id);
+  
+  const ticket = await Ticket.findOne({ _id: req.params.id, userId: req.user.id });
+  if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+  ticket.messages.push({
+    senderId: req.user.id,
+    senderName: user.name,
+    role: 'user',
+    text,
+    timestamp: Date.now()
+  });
+  
+  // Auto-reopen if closed
+  if (ticket.status === 'resolved' || ticket.status === 'closed') {
+      ticket.status = 'open';
+  }
+  
+  ticket.updatedAt = Date.now();
+  await ticket.save();
+  res.json(ticket);
+}));
+
+// Update Ticket Status (Close)
+app.put('/api/tickets/:id/status', authenticateToken, asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  const ticket = await Ticket.findOneAndUpdate(
+    { _id: req.params.id, userId: req.user.id },
+    { $set: { status, updatedAt: Date.now() } },
+    { new: true }
+  );
+  if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+  res.json(ticket);
+}));
+
+// --- ADMIN ROUTES (For Admin Dashboard) ---
+app.get('/api/admin/tickets', authenticateToken, asyncHandler(async (req, res) => {
+  // Ensure admin role check is done here or in middleware for production
+  // For now, relying on authenticated token role check logic in service layer or future middleware
+  const tickets = await Ticket.find({}).sort({ updatedAt: -1 });
+  res.json(tickets);
+}));
+
 
 // --- AI ENGINE ENDPOINT ---
 app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => {

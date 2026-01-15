@@ -173,7 +173,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-8">Powering Growth For</p>
           <div className="flex flex-wrap justify-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-             {['Startup Founders', 'Digital Agencies', 'Marketing Consultants', 'Growth Teams', 'Freelancers'].map((brand, i) => (
+             {['Enterprise Marketing and Sales Departments', 'Digital Marketing Agencies', 'Growth stage Startups and SMEs', 'Independent Consultants'].map((brand, i) => (
                <span key={i} className="text-xl font-bold text-slate-300">{brand}</span>
              ))}
           </div>

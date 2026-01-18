@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { generatePersona } from '../services/geminiService';
 import { NicheSuggestion, PersonaProfile } from '../types';
@@ -10,13 +11,15 @@ interface StepPersonaProps {
   niche: NicheSuggestion | null;
   onPersonaGenerated: (persona: PersonaProfile) => void;
   existingPersona: PersonaProfile | null;
+  productDescription?: string;
 }
 
 export const StepPersona: React.FC<StepPersonaProps> = ({
   productName,
   niche,
   onPersonaGenerated,
-  existingPersona
+  existingPersona,
+  productDescription
 }) => {
   const [loading, setLoading] = useState(false);
   const [persona, setPersona] = useState<PersonaProfile | null>(existingPersona);
@@ -35,7 +38,7 @@ export const StepPersona: React.FC<StepPersonaProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const data = await generatePersona(productName, niche, refine);
+      const data = await generatePersona(productName, niche, refine, productDescription);
       setPersona(data);
       onPersonaGenerated(data);
       setRefinementText("");

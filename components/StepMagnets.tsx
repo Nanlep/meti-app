@@ -5,6 +5,7 @@ import { PersonaProfile, LeadMagnet, AdPlatform } from '../types';
 import { Button, Card, SectionTitle, Modal } from './Shared';
 import { Magnet, Download, BookOpen, Video, FileText, PenTool, Loader, Share2, CheckCircle2, Link, Globe, Send } from 'lucide-react';
 import { notify } from '../services/notificationService';
+import { authService, getApiUrl } from '../services/authService';
 
 interface StepMagnetsProps {
   productName: string;
@@ -13,6 +14,7 @@ interface StepMagnetsProps {
   onUpdateMagnets: (magnets: LeadMagnet[]) => void;
   magnets: LeadMagnet[];
   connectedPlatforms: AdPlatform[];
+  productDescription?: string;
 }
 
 export const StepMagnets: React.FC<StepMagnetsProps> = ({
@@ -20,11 +22,10 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
   nicheName,
   persona,
   onUpdateMagnets,
-  // Defensive Fix: Default to empty arrays if props are undefined from parent state
   magnets: initialMagnets = [],
-  connectedPlatforms: initialConnectedPlatforms = []
+  connectedPlatforms: initialConnectedPlatforms = [],
+  productDescription
 }) => {
-  // Ensure we are working with arrays even if null was passed (destructuring defaults only catch undefined)
   const magnets = Array.isArray(initialMagnets) ? initialMagnets : [];
   const connectedPlatforms = Array.isArray(initialConnectedPlatforms) ? initialConnectedPlatforms : [];
 
@@ -44,7 +45,7 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const data = await generateLeadMagnets(productName, nicheName, persona);
+      const data = await generateLeadMagnets(productName, nicheName, persona, productDescription);
       onUpdateMagnets(data || []);
       notify.success("Ideas generated!");
     } catch (e: any) {
@@ -60,8 +61,7 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
     notify.info(`Drafting "${magnet.title}"... This may take a moment.`);
     
     try {
-      // Call service to hit backend agent 'magnet_content'
-      const content = await generateMagnetContent(magnet, persona, nicheName, productName);
+      const content = await generateMagnetContent(magnet, persona, nicheName, productName, productDescription);
       
       const updatedMagnets = [...magnets];
       if (updatedMagnets[index]) {
@@ -70,7 +70,6 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
             contentDraft: content,
             status: 'draft'
         };
-        // This triggers the parent App.tsx updateProject which hits backend PUT /api/projects/:id
         onUpdateMagnets(updatedMagnets);
         setViewingMagnet(updatedMagnets[index]);
         notify.success("Content drafted and saved to project.");
@@ -112,7 +111,7 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
     
     try {
       for (const platform of platformsToProcess) {
-        const content = await generateMagnetPromo(publishingMagnet.item, persona, platform, generatedLink);
+        const content = await generateMagnetPromo(publishingMagnet.item, persona, platform, generatedLink, productDescription);
         promos[platform] = content;
       }
       setPromoContent(promos);
@@ -130,7 +129,24 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
     setIsPosting(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Loop through content and post
+      for (const [platform, content] of Object.entries(promoContent)) {
+          const response = await fetch(`${getApiUrl()}/api/social/post`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  ...authService.getAuthHeader()
+              },
+              body: JSON.stringify({
+                  platforms: [platform], // Post one by one as content differs per platform
+                  content: content,
+                  // mediaUrl: publishingMagnet.item.coverImage // If we had one
+              })
+          });
+          
+          if (!response.ok) throw new Error(`Failed to post to ${platform}`);
+      }
+
       const updatedMagnets = [...magnets];
       if (updatedMagnets[publishingMagnet.index]) {
         updatedMagnets[publishingMagnet.index] = { 
@@ -144,9 +160,9 @@ export const StepMagnets: React.FC<StepMagnetsProps> = ({
       }
       setPublishingMagnet(null);
       notify.success("Campaign launched live!");
-    } catch (e) {
+    } catch (e: any) {
       console.error("Post failed", e);
-      notify.error("Finalizing failed.");
+      notify.error(e.message || "Finalizing failed.");
     } finally {
       setIsPosting(false);
     }

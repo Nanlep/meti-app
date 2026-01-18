@@ -252,14 +252,12 @@ export interface KeywordData {
 }
 
 export interface SeoAuditIssue {
-  // Added 'passed' to fix StepSEO type errors
   severity: 'critical' | 'warning' | 'info' | 'passed';
   category: 'Technical' | 'On-Page' | 'Speed' | 'Mobile';
   issue: string;
   recommendation: string;
 }
 
-// Added SeoAuditResponse to fix missing export error
 export interface SeoAuditResponse {
   results: SeoAuditIssue[];
   sources: any[];
@@ -334,8 +332,8 @@ export interface EmailSettings {
 export interface ProjectData {
   productName: string;
   productDescription: string;
-  productUrl?: string; // Direct linking
-  productPrice?: number; // Price for Revenue calculation
+  productUrl?: string; 
+  productPrice?: number; 
   selectedNiche: NicheSuggestion | null;
   generatedNiches: NicheSuggestion[];
   persona: PersonaProfile | null;
@@ -349,16 +347,13 @@ export interface ProjectData {
   connectedPlatforms?: AdPlatform[];
   crmLeads?: LeadItem[];
   connectedCrms?: string[];
-  // SEO Data
   seoKeywords?: KeywordData[];
   seoAuditResults?: SeoAuditIssue[];
   seoContentAnalysis?: SeoContentScore;
-  // Email Marketing Data
   emailCampaigns?: EmailCampaign[];
   emailAutomations?: AutomationWorkflow[];
   emailSubscribers?: Subscriber[];
   emailSettings?: EmailSettings;
-  // Sales specific (New consolidated)
   salesObjections?: string[];
   salesColdDms?: string[];
 }
@@ -371,7 +366,7 @@ export interface Project {
   clientId?: string; // Links to Client Entity (New)
   name: string;
   createdAt: number;
-  lastModified: number;
+  updatedAt: number; // Renamed from lastModified to match backend default
   status: 'draft' | 'active' | 'completed';
   data: ProjectData;
 }

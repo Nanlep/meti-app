@@ -24,6 +24,7 @@ interface StepEmailProps {
   onUpdateSettings: (settings: EmailSettings) => void;
   user?: User;
   onUpgrade?: () => void;
+  productDescription?: string;
 }
 
 export const StepEmail: React.FC<StepEmailProps> = ({
@@ -39,7 +40,8 @@ export const StepEmail: React.FC<StepEmailProps> = ({
   onUpdateSubscribers,
   onUpdateSettings,
   user,
-  onUpgrade
+  onUpgrade,
+  productDescription
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'campaigns' | 'automation' | 'audience' | 'settings'>('overview');
   const [showCampaignModal, setShowCampaignModal] = useState(false);
@@ -77,7 +79,7 @@ export const StepEmail: React.FC<StepEmailProps> = ({
     setLoadingAI(true);
     try {
         const [content, subjects] = await Promise.all([
-            generateEmailCampaignContent(productName, persona, topic, goal),
+            generateEmailCampaignContent(productName, persona, topic, goal, productDescription),
             optimizeSubjectLines(topic, persona)
         ]);
         if (editingCampaign) {
@@ -149,7 +151,6 @@ export const StepEmail: React.FC<StepEmailProps> = ({
       onUpdateCampaigns(updated);
   };
 
-  // ... (Other handlers like handleSyncCRM, handleFileUpload, etc. remain the same) ...
   const handleSyncCRM = () => {
       const { added, subscribers: newSubscribers } = emailService.syncFromCRM(subscribers, crmLeads);
       onUpdateSubscribers(newSubscribers);

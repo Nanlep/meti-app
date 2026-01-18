@@ -10,7 +10,7 @@ import { Auth } from './components/Auth';
 import { LandingPage } from './components/LandingPage';
 import { SupportModal } from './components/SupportModal';
 import { permissionService, SubscriptionTier } from './services/permissionService';
-import { Layers, Target, Users, Magnet, UserPlus, Zap, LayoutTemplate, FileText, LogOut, Shield, Crown, Star, Megaphone, Lock, BookOpen, Clock, CheckSquare, Mail, Settings, HelpCircle, Save, WifiOff, Search, ArrowRight, Activity, Database } from 'lucide-react';
+import { Layers, Target, Users, Magnet, Activity, Database, Megaphone, Search, Mail, LayoutTemplate, FileText, BookOpen, Settings, HelpCircle, Clock, Zap, LogOut, WifiOff, Shield, Crown, Star, Save, ArrowRight, Lock as LockIcon } from 'lucide-react';
 import { Logo } from './components/Logo';
 import { ToastContainer } from './components/Toast';
 import { Spinner } from './components/Shared';
@@ -204,7 +204,9 @@ const App: React.FC = () => {
 
     setIsSaving(true);
     try {
-        const updated = await storageService.update(activeId, updates);
+        // IMPORTANT: Merge current data with updates to prevent overwriting existing data
+        const mergedData = { ...currentProject?.data, ...updates };
+        const updated = await storageService.update(activeId, mergedData);
         if (updated) {
             setCurrentProject(prev => {
                 if (!prev) return updated;
@@ -258,7 +260,18 @@ const App: React.FC = () => {
       try {
         let project = await storageService.create(name, desc, draftClient, draftClientId);
         if (project) {
-             const updated = await storageService.update(project.id, { productUrl: url, productPrice: price });
+             // Robust check: Ensure we have an ID before proceeding
+             const projectId = project.id || (project as any)._id;
+             if (!projectId) throw new Error("Server returned project without valid ID");
+             
+             // Initial update with price/url, merging existing data
+             const mergedData = { 
+               productName: name, 
+               productDescription: desc, 
+               productUrl: url, 
+               productPrice: price 
+             };
+             const updated = await storageService.update(projectId, mergedData);
              if (updated) project = updated;
         }
         setCurrentProject(project);
@@ -272,18 +285,6 @@ const App: React.FC = () => {
       notify.success("Project Updated");
     }
     setCurrentStep(AppStep.NICHE);
-  };
-
-  const cycleSubscription = () => {
-    const tiers: ('hobby' | 'pro' | 'agency')[] = ['hobby', 'pro', 'agency'];
-    const currentIndex = tiers.indexOf(user?.subscription || 'hobby');
-    const nextTier = tiers[(currentIndex + 1) % tiers.length];
-    
-    const updated = authService.updateSubscription(nextTier);
-    if (updated) {
-       setUser(updated);
-       notify.info(`Switched to ${nextTier.toUpperCase()} Plan (Demo)`);
-    }
   };
 
   if (!user) {
@@ -303,19 +304,21 @@ const App: React.FC = () => {
     );
   }
 
+  // Ensure daysRemaining is defined here to fix "Cannot find name" error
   const daysRemaining = user && permissionService.getTrialDaysRemaining(user);
-  const isSetupLocked = !!currentProject && (!!currentProject.data.selectedNiche || !!currentProject.data.persona);
+  
+  // STRICT LOCK: If project exists, it is locked. No editing allowed.
+  const isSetupLocked = !!currentProject;
 
-  // Updated minTier to 'pro' for locked steps
   const steps: { id: AppStep; label: string; icon: any; minTier?: SubscriptionTier }[] = [
     { id: AppStep.SETUP, label: 'Product', icon: Layers },
     { id: AppStep.NICHE, label: 'Niche', icon: Target },
     { id: AppStep.PERSONA, label: 'Persona', icon: Users },
     { id: AppStep.MAGNETS, label: 'Magnets', icon: Magnet },
-    { id: AppStep.CONVERSION, label: 'Conversion Engine', icon: Activity, minTier: 'pro' },
-    { id: AppStep.CRM, label: 'CRM Pipeline', icon: Database, minTier: 'pro' },
-    { id: AppStep.ADS, label: 'Ad Engine', icon: Megaphone, minTier: 'pro' },
-    { id: AppStep.SEO, label: 'SEO Suite', icon: Search, minTier: 'pro' },
+    { id: AppStep.CONVERSION, label: 'Conversion Engine', icon: Activity, minTier: 'hobby' },
+    { id: AppStep.CRM, label: 'CRM Pipeline', icon: Database, minTier: 'hobby' },
+    { id: AppStep.ADS, label: 'Ad Engine', icon: Megaphone, minTier: 'hobby' },
+    { id: AppStep.SEO, label: 'SEO Suite', icon: Search, minTier: 'hobby' },
     { id: AppStep.EMAIL, label: 'Email Marketing', icon: Mail, minTier: 'pro' },
     { id: AppStep.LANDING, label: 'Landing Page', icon: LayoutTemplate, minTier: 'hobby' },
     { id: AppStep.REPORT, label: 'Final Report', icon: FileText },
@@ -365,14 +368,14 @@ const App: React.FC = () => {
               {steps.slice(0, 4).map(step => (
                 <button key={step.id} onClick={() => canAccessStep(step.id) && setCurrentStep(step.id)} disabled={!canAccessStep(step.id)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${currentStep === step.id ? 'bg-slate-800 text-white border border-slate-700' : 'text-slate-400 hover:bg-slate-800/50'} ${!canAccessStep(step.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <step.icon size={18} className={currentStep === step.id ? 'text-indigo-400' : ''} /> {step.label}
-                  {step.minTier && !permissionService.hasAccess(user, step.minTier) && <Lock size={12} className="ml-auto text-amber-500" />}
+                  {step.minTier && !permissionService.hasAccess(user, step.minTier) && <LockIcon size={12} className="ml-auto text-amber-500" />}
                 </button>
               ))}
               <div className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Execution</div>
               {steps.slice(4, 9).map(step => (
                 <button key={step.id} onClick={() => canAccessStep(step.id) && setCurrentStep(step.id)} disabled={!canAccessStep(step.id)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${currentStep === step.id ? 'bg-slate-800 text-white border border-slate-700' : 'text-slate-400 hover:bg-slate-800/50'} ${!canAccessStep(step.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <step.icon size={18} className={currentStep === step.id ? 'text-indigo-400' : ''} /> {step.label}
-                  {step.minTier && !permissionService.hasAccess(user, step.minTier) && <Lock size={12} className="ml-auto text-amber-500" />}
+                  {step.minTier && !permissionService.hasAccess(user, step.minTier) && <LockIcon size={12} className="ml-auto text-amber-500" />}
                 </button>
               ))}
               <div className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Export</div>
@@ -402,12 +405,17 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <header className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm flex items-center justify-between px-6 md:px-8 z-20 flex-shrink-0">
            <div className="flex items-center gap-4">
-              {currentProject && <div className="flex items-center gap-2 text-sm text-slate-400"><span className="hidden md:inline">Project:</span><span className="text-white font-medium bg-slate-800 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2">{currentProject.id} - {currentProject.name} {isSaving && <span className="text-[10px] ml-2 animate-pulse text-indigo-400">Syncing...</span>}</span></div>}
+              {currentProject && <div className="flex items-center gap-2 text-sm text-slate-400"><span className="hidden md:inline">Project:</span><span className="text-white font-medium bg-slate-800 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2">{currentProject.id} - {currentProject.name} {isSaving ? <span className="text-[10px] text-slate-500 animate-pulse">Saving...</span> : <Save size={12} className="text-emerald-500" />}</span></div>}
               {isOffline && <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20"><WifiOff size={12} /> OFFLINE</div>}
            </div>
            <div className="flex items-center gap-4">
-              {user.role !== 'admin' && <button onClick={cycleSubscription} className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all flex items-center gap-2 ${user.subscription === 'agency' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : user.subscription === 'pro' ? 'bg-emerald-500/10 text-emerald-400 border-amber-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>{user.subscription === 'agency' && <Crown size={12} />}{user.subscription === 'pro' && <Zap size={12} />}{user.subscription === 'hobby' && <Star size={12} />}{user.subscription.toUpperCase()}</button>}
-              <button onClick={() => { const newRole = user.role === 'admin' ? 'user' : 'admin'; const updated = { ...user, role: newRole as 'user' | 'admin' }; localStorage.setItem('meti_user_session', JSON.stringify(updated)); setUser(updated); if (newRole === 'admin') setCurrentStep(AppStep.ADMIN); else setCurrentStep(AppStep.DASHBOARD); notify.info(`Switched to ${newRole.toUpperCase()} View`); }} className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all flex items-center gap-2 ${user.role === 'admin' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-slate-800 text-slate-500 border-slate-700 opacity-50'}`}><Shield size={12} />{user.role === 'admin' ? 'ADMIN' : 'USER'}</button>
+              <span className={`text-xs font-bold px-3 py-1.5 rounded-full border flex items-center gap-2 ${user.subscription === 'agency' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : user.subscription === 'pro' ? 'bg-emerald-500/10 text-emerald-400 border-amber-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                {user.subscription === 'agency' && <Crown size={12} />}
+                {user.subscription === 'pro' && <Zap size={12} />}
+                {user.subscription === 'hobby' && <Star size={12} />}
+                {user.subscription.toUpperCase()}
+              </span>
+              
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border-2 border-slate-800 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={() => setCurrentStep(AppStep.SETTINGS)}></div>
            </div>
         </header>
@@ -424,13 +432,13 @@ const App: React.FC = () => {
                    
                    {currentStep === AppStep.PERSONA && (
                      data.selectedNiche ? 
-                     <StepPersona productName={data.productName} niche={data.selectedNiche} onPersonaGenerated={(persona) => { updateProject({ persona }); }} existingPersona={data.persona} /> :
+                     <StepPersona productName={data.productName} niche={data.selectedNiche} onPersonaGenerated={(persona) => { updateProject({ persona }); }} existingPersona={data.persona} productDescription={data.productDescription} /> :
                      <MissingPrereq title="Strategy Incomplete" message="Please select a target Niche before defining a Persona." action={() => setCurrentStep(AppStep.NICHE)} actionLabel="Select Niche" />
                    )}
 
                    {currentStep === AppStep.MAGNETS && (
                      (data.selectedNiche && data.persona) ?
-                     <StepMagnets productName={data.productName} nicheName={data.selectedNiche.name} persona={data.persona} onUpdateMagnets={(magnets) => updateProject({ generatedMagnets: magnets })} magnets={data.generatedMagnets || []} connectedPlatforms={data.connectedPlatforms || []} /> :
+                     <StepMagnets productName={data.productName} nicheName={data.selectedNiche.name} persona={data.persona} onUpdateMagnets={(magnets) => updateProject({ generatedMagnets: magnets })} magnets={data.generatedMagnets || []} connectedPlatforms={data.connectedPlatforms || []} productDescription={data.productDescription} /> :
                      <MissingPrereq title="Prerequisites Missing" message="You need to select a Niche and generate a Persona first." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
                    )}
 
@@ -450,20 +458,18 @@ const App: React.FC = () => {
                         data={data}
                         onUpdateLeads={(leads) => updateProject({ crmLeads: leads })}
                         onUpdateConnections={(crms) => updateProject({ connectedCrms: crms })}
-                        user={user}
-                        onUpgrade={() => setCurrentStep(AppStep.PRICING)}
                      />
                    )}
 
                    {currentStep === AppStep.ADS && (
                      (data.selectedNiche && data.persona) ?
-                     <StepAds productName={data.productName} niche={data.selectedNiche} persona={data.persona} ads={data.adCampaigns || []} onUpdateAds={(ads) => updateProject({ adCampaigns: ads })} connectedPlatforms={data.connectedPlatforms || []} onUpdateConnectedPlatforms={(platforms) => updateProject({ connectedPlatforms: platforms })} productUrl={data.productUrl} productPrice={data.productPrice} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} /> :
+                     <StepAds productName={data.productName} niche={data.selectedNiche} persona={data.persona} ads={data.adCampaigns || []} onUpdateAds={(ads) => updateProject({ adCampaigns: ads })} connectedPlatforms={data.connectedPlatforms || []} onUpdateConnectedPlatforms={(platforms) => updateProject({ connectedPlatforms: platforms })} productUrl={data.productUrl} productPrice={data.productPrice} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} productDescription={data.productDescription} /> :
                      <MissingPrereq title="Ad Engine Locked" message="Define your audience to generate targeted ad campaigns." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
                    )}
 
                    {currentStep === AppStep.SEO && (
                      (data.selectedNiche && data.persona) ?
-                     <StepSEO productName={data.productName} niche={data.selectedNiche} persona={data.persona} productUrl={data.productUrl} seoKeywords={data.seoKeywords || []} seoAuditResults={data.seoAuditResults || []} seoContentAnalysis={data.seoContentAnalysis} onUpdate={(updates) => updateProject(updates)} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} /> :
+                     <StepSEO productName={data.productName} niche={data.selectedNiche} persona={data.persona} productUrl={data.productUrl} seoKeywords={data.seoKeywords || []} seoAuditResults={data.seoAuditResults || []} seoContentAnalysis={data.seoContentAnalysis} onUpdate={(updates) => updateProject(updates)} user={user} productDescription={data.productDescription} /> :
                      <MissingPrereq title="SEO Suite Locked" message="Target keywords depend on your Niche and Persona." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
                    )}
 
@@ -484,13 +490,14 @@ const App: React.FC = () => {
                         onUpdateSettings={(s) => updateProject({ emailSettings: s })}
                         user={user}
                         onUpgrade={() => setCurrentStep(AppStep.PRICING)}
+                        productDescription={data.productDescription}
                      /> :
                      <MissingPrereq title="Email Engine Locked" message="We need a Persona to write effective email copy." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
                    )}
 
                    {currentStep === AppStep.LANDING && (
                      (data.selectedNiche && data.persona) ?
-                     <StepLanding productName={data.productName} niche={data.selectedNiche} persona={data.persona} landingPage={data.landingPage} onUpdate={(lp) => updateProject({ landingPage: lp })} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} /> :
+                     <StepLanding productName={data.productName} niche={data.selectedNiche} persona={data.persona} landingPage={data.landingPage} onUpdate={(lp) => updateProject({ landingPage: lp })} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} productDescription={data.productDescription} /> :
                      <MissingPrereq title="Builder Locked" message="Landing pages require a Niche and Persona context." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
                    )}
 

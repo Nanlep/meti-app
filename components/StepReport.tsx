@@ -66,9 +66,9 @@ ${data.qualificationFramework?.map((q, i) => `${i+1}. ${q.question}
 
   const handleDownload = () => {
     const element = document.createElement("a");
-    const file = new Blob([generateMarkdown()], {type: 'text/markdown'});
+    const file = new Blob([generateMarkdown()], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
-    element.download = `${data.productName.replace(/\s+/g, '_')}_Strategy.md`;
+    element.download = `${data.productName.replace(/\s+/g, '_')}_Strategy.txt`;
     document.body.appendChild(element);
     element.click();
   };
@@ -90,7 +90,7 @@ ${data.qualificationFramework?.map((q, i) => `${i+1}. ${q.question}
                 {copied ? <Check size={18} /> : <Copy size={18} />} Copy Text
               </Button>
               <Button onClick={handleDownload} className="flex-1">
-                <Download size={18} /> Download MD
+                <Download size={18} /> Download TXT
               </Button>
             </div>
           </Card>

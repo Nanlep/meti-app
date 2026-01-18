@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { generateNiches } from '../services/geminiService';
 import { NicheSuggestion } from '../types';

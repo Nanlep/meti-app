@@ -30,7 +30,15 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+    // Real-time polling for updates
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadData();
+        if (activeTab === 'support') loadTickets();
+      }
+    }, 10000); // Poll every 10s
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   useEffect(() => {
       if (activeTab === 'support') {
@@ -39,7 +47,8 @@ export const AdminDashboard: React.FC = () => {
   }, [activeTab]);
 
   const loadData = async () => {
-    setLoading(true);
+    // Only set loading on first load to prevent flicker
+    if (!stats) setLoading(true);
     try {
       const [statsData, usersData, maintenanceStatus] = await Promise.all([
         adminService.getStats(),
@@ -61,7 +70,8 @@ export const AdminDashboard: React.FC = () => {
           const data = await supportService.getAllTickets();
           setTickets(data);
       } catch (e) {
-          notify.error("Failed to load tickets");
+          // Silent fail for polling
+          console.error("Failed to load tickets", e);
       }
   };
 
@@ -127,6 +137,7 @@ export const AdminDashboard: React.FC = () => {
           setActiveTicket(updated);
           setTickets(tickets.map(t => t.id === updated.id ? updated : t));
           notify.success(`Ticket marked as ${status}`);
+          loadData(); // Refresh stats
       } catch (e) {
           notify.error("Failed to update status");
       }
@@ -191,11 +202,13 @@ export const AdminDashboard: React.FC = () => {
                 </Card>
                 <Card className="bg-slate-800 border-slate-700">
                    <div className="flex items-center justify-between mb-4">
-                    <span className="text-slate-400 text-sm font-medium">Open Tickets</span>
-                    <MessageSquare size={20} className="text-amber-400" />
+                    <span className="text-slate-400 text-sm font-medium">Total Tickets</span>
+                    <MessageSquare size={20} className="text-pink-400" />
                    </div>
-                   <div className="text-3xl font-bold text-white">{tickets.filter(t => t.status === 'open').length}</div>
-                   <div className="text-xs text-slate-500 mt-2">Requires attention</div>
+                   <div className="text-3xl font-bold text-white">{stats.tickets?.total || 0}</div>
+                   <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                     <span className="w-2 h-2 rounded-full bg-amber-500"></span> {stats.tickets?.open || 0} Open
+                   </div>
                 </Card>
                 <Card className="bg-slate-800 border-slate-700">
                    <div className="flex items-center justify-between mb-4">
@@ -403,7 +416,7 @@ export const AdminDashboard: React.FC = () => {
                                           className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-indigo-500 resize-none h-20"
                                           placeholder="Type your reply..."
                                       />
-                                      <Button onClick={handleSupportReply} disabled={isSendingReply || !supportReply.trim()} className="h-20 w-20 flex flex-col items-center justify-center">
+                                      <Button onClick={handleSupportReply} disabled={isSendingReply || !supportReply.trim()} className="h-20 w-20 flex flex-col items-center justify-center p-0">
                                           {isSendingReply ? <Spinner /> : <><Send size={18} className="mb-1"/> Send</>}
                                       </Button>
                                   </div>

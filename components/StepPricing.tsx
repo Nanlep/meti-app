@@ -7,37 +7,29 @@ import { authService } from '../services/authService';
 import useCheckout from 'bani-react';
 import { User } from '../types';
 
-type Currency = 'NGN' | 'USD';
-
 interface StepPricingProps {
   user?: User;
 }
 
 export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
-  const [currency, setCurrency] = useState<Currency>('NGN');
   const { BaniPopUp } = useCheckout();
 
   const customerEmail = user?.email || "";
   const customerName = user?.name || "";
-  
   const nameParts = customerName.split(' ');
   const firstName = nameParts[0] || "Valued";
   const lastName = nameParts.slice(1).join(' ') || "Customer";
 
-  const handleSubscribe = (planName: string, amountNGN: string, amountUSD: string) => {
+  const handleSubscribe = (planName: string, amountNGN: string) => {
     setProcessingPlan(planName);
     
-    // Determine payment amount based on selected currency
-    // NOTE: For this implementation, we pass the appropriate string value. 
-    // If Bani only supports NGN natively, this would need conversion logic, but assuming multi-currency support or strictly display toggle per request.
-    const payAmount = currency === 'NGN' ? amountNGN : amountUSD; 
-    
+    // NGN Only
     const reference = `METI_${user?.id || 'GUEST'}_${planName.toLowerCase()}_${Date.now()}`;
 
     try {
       BaniPopUp({
-        amount: payAmount,
+        amount: amountNGN,
         phoneNumber: "08021234567",
         email: customerEmail,
         firstName: firstName,
@@ -46,7 +38,7 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
         metadata: { 
             custom_ref: reference, 
             order_ref: reference,
-            currency: currency // Pass currency info in metadata
+            currency: 'NGN'
         },
         onClose: handleOnClose,
         callback: (response: any) => handleOnSuccess(response, planName, reference)
@@ -64,24 +56,22 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
   };
 
   const handleOnSuccess = (response: any, planName: string, reference: string) => {
-      // Optimistic Update
-      const planKey = planName.toLowerCase() === 'agency' ? 'agency' : 'pro';
-      const updatedUser = authService.updateSubscription(planKey as any);
-      notify.success(`Payment Successful! upgrading to ${planName}...`);
+      notify.success(`Payment Successful! Activating ${planName}...`);
       setProcessingPlan(null);
+      // Wait for webhook or refresh
       setTimeout(() => {
           window.location.reload(); 
-      }, 2000);
+      }, 3000);
   };
 
   const plans = [
     {
       name: 'Starter', 
-      price: currency === 'NGN' ? '₦0' : '$0',
+      price: '₦0',
       period: '/ month',
       description: 'Pay-as-you-go. No monthly commitment.',
       features: ['Pay Per Project Session', 'AI Persona & Niche Analysis', 'Basic Lead Magnets', 'Ad Engine (Lite)', 'Sales Simulator'],
-      extraInfo: currency === 'NGN' ? 'Single Session: ₦14,700' : 'Single Session: $9.80',
+      extraInfo: 'Single Session: ₦50,000',
       cta: 'Current Plan',
       variant: 'outline' as const,
       icon: Star,
@@ -89,28 +79,28 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
     },
     {
       name: 'Pro',
-      price: currency === 'NGN' ? '₦44,700' : '$29.80',
+      price: '₦200,000',
       period: '/ month',
       popular: true,
       description: 'For power users launching multiple campaigns monthly.',
       features: ['5 Projects Included', 'Full SEO Suite (Audits, Keywords)', 'Real-time Google Maps Leads', 'Live Content Optimization', 'Multi-Channel Ad Engine', 'Landing Page Generator'],
-      extraInfo: currency === 'NGN' ? 'Additional projects: ₦14,700 / each' : 'Additional projects: $9.80 / each',
+      extraInfo: 'Additional projects: ₦50,000 / each',
       cta: 'Get Pro Access',
       variant: 'primary' as const,
       icon: Zap,
-      action: () => handleSubscribe('Pro', "44700", "29.80")
+      action: () => handleSubscribe('Pro', "200000")
     },
     {
       name: 'Agency',
-      price: currency === 'NGN' ? '₦298,350' : '$198.90',
+      price: '₦1,000,000',
       period: '/ month',
       description: 'The ultimate OS for scaling agencies managing multiple clients.',
-      features: ['25 Projects Included', 'Client Management Dashboard', 'White-label SEO & Strategy Reports', 'CMS Integrations', '5 Team Member Seats Included', 'Developer API Access'],
-      extraInfo: currency === 'NGN' ? 'Additional projects: ₦11,000 / each' : 'Additional projects: $7.30 / each',
+      features: ['25 Projects Included', 'White-label SEO & Strategy Reports', 'CMS Integrations', '5 Team Member Seats Included', 'Developer API Access'],
+      extraInfo: 'Additional projects: ₦50,000 / each',
       cta: 'Get Agency Access',
       variant: 'secondary' as const,
       icon: Crown,
-      action: () => handleSubscribe('Agency', "298350", "198.90")
+      action: () => handleSubscribe('Agency', "1000000")
     }
   ];
 
@@ -118,19 +108,8 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
     <div className="max-w-7xl mx-auto animate-fadeIn pb-20">
       <div className="flex flex-col items-center mb-16 relative">
         <h2 className="text-3xl font-bold text-white mb-6">Choose Your Growth Engine</h2>
-        <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 mb-6">
-            <button 
-                onClick={() => setCurrency('NGN')} 
-                className={`px-4 py-2 rounded text-sm font-bold transition-all ${currency === 'NGN' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-            >
-                NGN
-            </button>
-            <button 
-                onClick={() => setCurrency('USD')} 
-                className={`px-4 py-2 rounded text-sm font-bold transition-all ${currency === 'USD' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-            >
-                USD
-            </button>
+        <div className="inline-flex bg-slate-800/50 px-4 py-1 rounded-full border border-slate-700 text-xs text-slate-400 mb-6">
+            <Globe size={12} className="mr-2" /> Regional Pricing: Nigeria (NGN)
         </div>
         <p className="text-slate-400">Secure payments processed via Bani Africa.</p>
       </div>

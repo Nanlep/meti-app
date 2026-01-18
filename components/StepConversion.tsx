@@ -150,7 +150,7 @@ export const StepConversion: React.FC<StepConversionProps> = ({ data, onUpdate, 
   const handleGeneratePlaybook = async () => {
     setLoadingPlaybook(true);
     try {
-      const questions = await generateQualification(data.productName, persona);
+      const questions = await generateQualification(data.productName, persona, data.productDescription);
       setQualQuestions(questions);
       onUpdate({ qualificationFramework: questions }); 
       notify.success("Qualification framework generated");
@@ -161,7 +161,7 @@ export const StepConversion: React.FC<StepConversionProps> = ({ data, onUpdate, 
     if (!objectionInput.trim()) return;
     setAnalyzingObjection(true);
     try {
-      const results = await handleObjection(objectionInput, data.productName, persona);
+      const results = await handleObjection(objectionInput, data.productName, persona, data.productDescription);
       setCurrentRebuttals(results);
       if (!objections.includes(objectionInput)) {
           const newObjections = [...objections, objectionInput];
@@ -175,8 +175,8 @@ export const StepConversion: React.FC<StepConversionProps> = ({ data, onUpdate, 
     setLoadingOutreach(true);
     try {
       const [dms, emails] = await Promise.all([
-        generateColdDMs(data.productName, persona),
-        generateFollowUp(data.productName, persona, null)
+        generateColdDMs(data.productName, persona, data.productDescription),
+        generateFollowUp(data.productName, persona, null, data.productDescription)
       ]);
       setColdDms(dms);
       setEmailSeq(emails);
@@ -211,7 +211,7 @@ export const StepConversion: React.FC<StepConversionProps> = ({ data, onUpdate, 
         if (chunk.sources && chunk.sources.length > 0) {
           setCurrentSources(prev => [...prev, ...chunk.sources!]);
         }
-      });
+      }, data.productDescription);
     } catch (e) { 
       notify.error("Stream failed. Simulator offline."); 
     } finally { 

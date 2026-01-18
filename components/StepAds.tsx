@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { generateAdCreatives } from '../services/geminiService';
 import { NicheSuggestion, PersonaProfile, AdCreative, AdPlatform, User } from '../types';
@@ -19,7 +20,8 @@ interface StepAdsProps {
   productUrl?: string; 
   productPrice?: number;
   user?: User; 
-  onUpgrade?: () => void; 
+  onUpgrade?: () => void;
+  productDescription?: string; 
 }
 
 export const StepAds: React.FC<StepAdsProps> = ({
@@ -33,18 +35,20 @@ export const StepAds: React.FC<StepAdsProps> = ({
   productUrl,
   productPrice,
   user,
-  onUpgrade
+  onUpgrade,
+  productDescription
 }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'create' | 'analytics'>('create');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedAdIndex, setSelectedAdIndex] = useState<number | null>(null);
   const [posting, setPosting] = useState<Record<number, boolean>>({});
+  const [checkingConnection, setCheckingConnection] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const newAds = await generateAdCreatives(productName, niche, persona, productUrl);
+      const newAds = await generateAdCreatives(productName, niche, persona, productUrl, productDescription);
       onUpdateAds(newAds);
       notify.success("Ad campaign generated");
       if (newAds.length > 0) setSelectedAdIndex(0);
@@ -90,14 +94,31 @@ export const StepAds: React.FC<StepAdsProps> = ({
       }
   };
 
-  const togglePlatformConnection = (platform: AdPlatform) => {
-    // In production, this would redirect to OAuth flow via backend
+  const togglePlatformConnection = async (platform: AdPlatform) => {
     if (connectedPlatforms.includes(platform)) {
         onUpdateConnectedPlatforms(connectedPlatforms.filter(p => p !== platform));
+        notify.info(`${platform} Disconnected`);
     } else {
-        // Simulating the callback for now, but requiring the backend route to exist
-        onUpdateConnectedPlatforms([...connectedPlatforms, platform]);
-        notify.success("Connected (Simulated)");
+        setCheckingConnection(platform);
+        try {
+            const response = await fetch(`${getApiUrl()}/api/social/platforms`, {
+                headers: authService.getAuthHeader()
+            });
+            const activePlatforms: string[] = await response.json();
+            
+            // Ayrshare returns platforms in lowercase
+            const pLower = platform.toLowerCase();
+            if (activePlatforms.includes(pLower)) {
+                 onUpdateConnectedPlatforms([...connectedPlatforms, platform]);
+                 notify.success(`Connected to ${platform}`);
+            } else {
+                 notify.error(`Unable to connect ${platform}. Please ensure it is linked in your Ayrshare dashboard.`);
+            }
+        } catch (e) {
+             notify.error("Connection verification failed. Please try again.");
+        } finally {
+            setCheckingConnection(null);
+        }
     }
   };
 
@@ -113,7 +134,6 @@ export const StepAds: React.FC<StepAdsProps> = ({
 
   const selectedAd = selectedAdIndex !== null ? ads[selectedAdIndex] : null;
 
-  // Fix: Ensure onUpgrade is not undefined when passed to FeatureGuard
   if (user && !permissionService.hasAccess(user, 'pro')) {
     return <FeatureGuard user={user} requiredTier="pro" featureName="Ad Campaign Engine" onUpgrade={onUpgrade || (() => {})}>{null}</FeatureGuard>;
   }
@@ -181,8 +201,13 @@ export const StepAds: React.FC<StepAdsProps> = ({
                           {getPlatformIcon(p as AdPlatform)}
                           <span className="font-bold text-white">{p}</span>
                       </div>
-                      <Button size="sm" variant={connectedPlatforms.includes(p as AdPlatform) ? 'outline' : 'primary'} onClick={() => togglePlatformConnection(p as AdPlatform)}>
-                          {connectedPlatforms.includes(p as AdPlatform) ? 'Disconnect' : 'Connect'}
+                      <Button 
+                        size="sm" 
+                        variant={connectedPlatforms.includes(p as AdPlatform) ? 'outline' : 'primary'} 
+                        onClick={() => togglePlatformConnection(p as AdPlatform)}
+                        disabled={checkingConnection === p}
+                      >
+                          {checkingConnection === p ? <Loader className="animate-spin" size={14} /> : connectedPlatforms.includes(p as AdPlatform) ? 'Disconnect' : 'Connect'}
                       </Button>
                   </div>
               ))}

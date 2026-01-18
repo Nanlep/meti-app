@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { generateLandingPage } from '../services/geminiService';
 import { NicheSuggestion, PersonaProfile, LandingPage, User } from '../types';
@@ -7,6 +6,7 @@ import { Button, Card, SectionTitle } from './Shared';
 import { FeatureGuard } from './FeatureGuard';
 import { LayoutTemplate, Eye, Code, CheckCircle2, Quote, ArrowRight, Image as ImageIcon, Download } from 'lucide-react';
 import { permissionService } from '../services/permissionService';
+import { notify } from '../services/notificationService';
 
 interface StepLandingProps {
   productName: string;
@@ -16,6 +16,7 @@ interface StepLandingProps {
   onUpdate: (lp: LandingPage) => void;
   user?: User; // Add user prop
   onUpgrade?: () => void; // Add upgrade prop
+  productDescription?: string;
 }
 
 export const StepLanding: React.FC<StepLandingProps> = ({
@@ -25,7 +26,8 @@ export const StepLanding: React.FC<StepLandingProps> = ({
   landingPage,
   onUpdate,
   user,
-  onUpgrade
+  onUpgrade,
+  productDescription
 }) => {
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'preview' | 'data'>('preview');
@@ -33,10 +35,12 @@ export const StepLanding: React.FC<StepLandingProps> = ({
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const data = await generateLandingPage(productName, niche, persona);
+      const data = await generateLandingPage(productName, niche, persona, productDescription);
       onUpdate(data);
-    } catch (e) {
+      notify.success("Landing Page Generated");
+    } catch (e: any) {
       console.error(e);
+      notify.error(e.message || "Failed to generate landing page. Please try again.");
     } finally {
       setLoading(false);
     }

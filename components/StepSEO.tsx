@@ -19,6 +19,7 @@ interface StepSEOProps {
   onUpdate: (data: any) => void;
   user?: User;
   onUpgrade?: () => void;
+  productDescription?: string;
 }
 
 export const StepSEO: React.FC<StepSEOProps> = ({
@@ -31,7 +32,8 @@ export const StepSEO: React.FC<StepSEOProps> = ({
   seoContentAnalysis,
   onUpdate,
   user,
-  onUpgrade
+  onUpgrade,
+  productDescription
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'audit' | 'keywords' | 'editor' | 'integrations'>('overview');
   const [loading, setLoading] = useState(false);
@@ -105,7 +107,7 @@ export const StepSEO: React.FC<StepSEOProps> = ({
     }
     setLoading(true);
     try {
-      const results = await generateKeywordStrategy(seedKeyword, niche.name, persona);
+      const results = await generateKeywordStrategy(seedKeyword, niche.name, persona, productDescription);
       onUpdate({ seoKeywords: results });
       notify.success("Strategy generated");
     } catch (e) {

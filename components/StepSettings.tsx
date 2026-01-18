@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { Button, Card, SectionTitle } from './Shared';
 import { authService } from '../services/authService';
-import { User as UserIcon, Lock, CreditCard, Save, CheckCircle2, Shield, Crown, Image as ImageIcon, Megaphone } from 'lucide-react';
+import { User as UserIcon, Lock, CreditCard, Save, CheckCircle2, Shield, Crown, Image as ImageIcon, Megaphone, AlertTriangle } from 'lucide-react';
 import { compressImage } from '../utils/core';
 
 interface StepSettingsProps {
@@ -13,7 +13,11 @@ interface StepSettingsProps {
 
 export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }) => {
   const [name, setName] = useState(user.name);
-  const [password, setPassword] = useState('');
+  
+  // Password State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   // Agency Branding State
   const [agencyLogo, setAgencyLogo] = useState(user.agencyLogoUrl || '');
@@ -37,6 +41,7 @@ export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }
     try {
         const base64 = await compressImage(file);
         setAdBrandLogo(base64);
+        setError('');
     } catch (e) {
         setError("Failed to process image");
     }
@@ -48,11 +53,43 @@ export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }
     setError('');
     setSuccess('');
 
+    // Validation
+    if (newPassword || currentPassword) {
+        if (!currentPassword) {
+            setError("Current password is required to save changes.");
+            setLoading(false);
+            return;
+        }
+        if (newPassword && newPassword !== confirmPassword) {
+            setError("New passwords do not match.");
+            setLoading(false);
+            return;
+        }
+        if (newPassword && newPassword.length < 6) {
+            setError("New password must be at least 6 characters.");
+            setLoading(false);
+            return;
+        }
+    }
+
     try {
-      // In a real app, this calls the backend. 
-      // For now, we update the local session and simulate the API call via authService
+      const dataToUpdate: any = { 
+          name, 
+          adBrandLogoUrl: adBrandLogo 
+      };
       
-      const dataToUpdate: any = { name, password, adBrandLogoUrl: adBrandLogo };
+      // Only send password fields if user is changing it
+      if (newPassword) {
+          dataToUpdate.currentPassword = currentPassword;
+          dataToUpdate.newPassword = newPassword;
+      } else if (currentPassword) {
+          // If they typed current password but no new password, maybe they just want to verify before changing name?
+          // The backend technically requires currentPassword only if newPassword is present, 
+          // BUT for security, if they are just changing name, we don't strictly need password unless we want to enforce it.
+          // For now, let's only send currentPassword if newPassword exists, OR if we want to enforce auth for name change.
+          // Backend logic: "if (newPassword) check current". 
+          // So if user just changes Name, we don't send password fields.
+      }
       
       // Merge branding data if agency
       if (user.subscription === 'agency') {
@@ -63,7 +100,11 @@ export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }
       const updated = await authService.updateProfile(user.id, dataToUpdate);
       onUserUpdate(updated);
       setSuccess('Profile updated successfully.');
-      setPassword(''); // Clear password field for security
+      
+      // Clear sensitive fields
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (e: any) {
       setError(e.message || 'Failed to update profile.');
     } finally {
@@ -108,17 +149,43 @@ export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }
 
               <div className="pt-4 border-t border-slate-800 mt-4">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <Lock size={16} className="text-slate-400" /> Security
+                  <Lock size={16} className="text-slate-400" /> Change Password
                 </h4>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">New Password</label>
-                  <input 
-                    type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Leave blank to keep current password"
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500 transition-colors"
-                  />
+                
+                <div className="space-y-3">
+                    <div>
+                        <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Current Password</label>
+                        <input 
+                            type="password" 
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Required to set new password"
+                            className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500 transition-colors"
+                        />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">New Password</label>
+                            <input 
+                                type="password" 
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Min 6 chars"
+                                className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500 transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Confirm Password</label>
+                            <input 
+                                type="password" 
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="Re-enter new password"
+                                className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500 transition-colors"
+                            />
+                        </div>
+                    </div>
                 </div>
               </div>
 
@@ -164,8 +231,8 @@ export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }
               )}
 
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
-                  {error}
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm flex items-center gap-2">
+                  <AlertTriangle size={16} /> {error}
                 </div>
               )}
 
@@ -177,7 +244,7 @@ export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }
 
               <div className="pt-2">
                 <Button type="submit" disabled={loading} className="w-full md:w-auto">
-                  {loading ? 'Saving...' : 'Save Changes'} <Save size={16} className="ml-2" />
+                  {loading ? 'Saving Changes...' : 'Save Profile'} <Save size={16} className="ml-2" />
                 </Button>
               </div>
             </form>
@@ -237,7 +304,7 @@ export const StepSettings: React.FC<StepSettingsProps> = ({ user, onUserUpdate }
               </div>
 
               <Button variant="outline" className="w-full text-xs">
-                Manage Billing in Stripe
+                Manage Billing
               </Button>
             </div>
           </Card>

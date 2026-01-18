@@ -8,6 +8,10 @@ export interface AdminStats {
   activeNow: number;
   revenueMRR: number;
   apiCallsToday: number;
+  tickets?: {
+    total: number;
+    open: number;
+  };
 }
 
 export const adminService = {
@@ -18,24 +22,14 @@ export const adminService = {
 
   getStats: async (): Promise<AdminStats> => {
     try {
-      const users = await adminService.getAllUsers();
-      const estimatedProjects = users.length * 2; 
-
-      // Revenue Calculation based on new NGN Pricing
-      // Pro: ₦44,700 | Agency: ₦298,350
-      const revenueMRR = users.reduce((acc, user) => {
-        if (user.subscription === 'pro') return acc + 44700;
-        if (user.subscription === 'agency') return acc + 298350;
-        return acc;
-      }, 0);
-
-      return {
-        totalUsers: users.length,
-        totalProjects: estimatedProjects,
-        activeNow: Math.floor(users.length * 0.2) + 1, 
-        revenueMRR: revenueMRR,
-        apiCallsToday: users.length * 15
-      };
+      const response = await fetch(`${getApiUrl()}/api/admin/stats`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authService.getToken()}`
+        }
+      });
+      if (!response.ok) return { totalUsers: 0, totalProjects: 0, activeNow: 0, revenueMRR: 0, apiCallsToday: 0 };
+      return await response.json();
     } catch (e) {
       console.error("Admin Stats Error", e);
       return { totalUsers: 0, totalProjects: 0, activeNow: 0, revenueMRR: 0, apiCallsToday: 0 };

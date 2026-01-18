@@ -8,7 +8,6 @@ import { Plus, FolderOpen, Clock, Trash2, ArrowRight, LayoutGrid, Shield, Users,
 import { SecurityModal } from './SecurityModal';
 import { TeamModal } from './TeamModal';
 import { DeveloperPortal } from './DeveloperPortal';
-import { AgencyClients } from './AgencyClients';
 import { permissionService } from '../services/permissionService';
 import { notify } from '../services/notificationService';
 import useCheckout from 'bani-react';
@@ -26,7 +25,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
   const [isSecurityOpen, setIsSecurityOpen] = useState(false);
   const [isDevPortalOpen, setIsDevPortalOpen] = useState(false);
   const [teamModalProject, setTeamModalProject] = useState<Project | null>(null);
-  const [activeTab, setActiveTab] = useState<'projects' | 'clients'>('projects');
   
   // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -46,9 +44,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
 
   const loadProjects = async () => {
     setLoadingProjects(true);
-    const data = await storageService.getAll();
-    setProjects(data);
-    setLoadingProjects(false);
+    try {
+      const data = await storageService.getAll();
+      // Ensure date sorting is robust
+      setProjects(data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+    } catch (e) {
+      console.error("Failed to load projects", e);
+    } finally {
+      setLoadingProjects(false);
+    }
   };
 
   const refreshProjects = () => {
@@ -90,7 +94,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
       const additionalCost = permissionService.getAdditionalProjectCost(user?.subscription || 'hobby');
       const reference = `METI_${user?.id}_project_${Date.now()}`;
       
-      // User details for Bani
       const customerEmail = user?.email || "";
       const nameParts = (user?.name || "User").split(' ');
       const firstName = nameParts[0];
@@ -99,7 +102,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
       try {
         BaniPopUp({
             amount: additionalCost.toString(),
-            phoneNumber: "08021234567", // Required
+            phoneNumber: "08021234567",
             email: customerEmail,
             firstName: firstName,
             lastName: lastName,
@@ -114,7 +117,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
                 notify.info("Payment cancelled.");
             },
             callback: (response: any) => {
-                console.log("Payment success:", response);
                 notify.success("Payment Successful! Creating project...");
                 setProcessingPayment(false);
                 setShowPaymentModal(false);
@@ -127,15 +129,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
           setProcessingPayment(false);
       }
   };
-
-  const groupedProjects = projects.reduce((acc, project) => {
-    const client = project.client || 'Unassigned';
-    if (!acc[client]) acc[client] = [];
-    acc[client].push(project);
-    return acc;
-  }, {} as Record<string, Project[]>);
-
-  const clientNames = Object.keys(groupedProjects).sort();
 
   const ownedCount = projects.filter(p => p.userId === user?.id).length;
   const projectLimit = permissionService.getProjectLimit(user?.subscription || 'hobby');
@@ -181,10 +174,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
         </div>
       </div>
       
-      {/* ... (Existing Agency logic remains unchanged) ... */}
-      
-      {/* Project Grid Logic simplified for brevity, using existing */}
-      {!isAgency && !loadingProjects && (
+      {!loadingProjects && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
             <ProjectCard 
@@ -196,6 +186,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
               onDelete={handleDelete} 
             />
           ))}
+          {projects.length === 0 && (
+              <div className="col-span-full text-center py-20 bg-slate-900/30 border border-dashed border-slate-700 rounded-2xl">
+                  <FolderOpen size={48} className="mx-auto text-slate-600 mb-4" />
+                  <h3 className="text-white font-medium mb-1">No projects yet</h3>
+                  <p className="text-slate-400 text-sm mb-6">Create your first strategy to get started.</p>
+                  <Button onClick={handleCreateClick}>Create Project</Button>
+              </div>
+          )}
         </div>
       )}
 
@@ -245,6 +243,9 @@ const ProjectCard: React.FC<{
   onDelete: (e: React.MouseEvent, id: string) => void;
 }> = ({ project, user, onSelect, onTeamClick, onDelete }) => {
   const isOwner = user && project.userId === user.id;
+  
+  // Use createdAt as fallback if updatedAt is missing or invalid
+  const dateToDisplay = project.updatedAt || project.createdAt || Date.now();
 
   return (
     <Card 
@@ -272,7 +273,7 @@ const ProjectCard: React.FC<{
       </p>
       <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-700/50 pt-4 mt-auto">
         <div className="flex items-center gap-1">
-          <Clock size={12} /> {new Date(project.lastModified).toLocaleDateString()}
+          <Clock size={12} /> {new Date(dateToDisplay).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
           {!isOwner && <span className="ml-2 bg-slate-700 px-1.5 py-0.5 rounded text-[10px] text-white">SHARED</span>}
         </div>
         <div className="flex items-center gap-1 text-indigo-400 font-medium group-hover:translate-x-1 transition-transform">

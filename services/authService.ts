@@ -104,13 +104,27 @@ export const authService = {
   },
   
   refreshSession: () => authService.getCurrentUser(),
-  updateProfile: async (userId: string, data: any) => {
-      const current = authService.getCurrentUser();
-      if (current) {
-          const updated = { ...current, ...data };
-          localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(updated));
-          return updated;
+  
+  updateProfile: async (userId: string, data: any): Promise<User> => {
+      const token = authService.getToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(`${getApiUrl()}/api/auth/profile`, {
+          method: 'PUT',
+          headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to update profile");
       }
-      return current as User;
+
+      const updatedUser = await response.json();
+      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(updatedUser));
+      return updatedUser;
   }
 };

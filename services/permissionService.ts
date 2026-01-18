@@ -18,9 +18,9 @@ export const PROJECT_LIMITS: Record<SubscriptionTier, number> = {
 };
 
 export const OVERAGE_COSTS: Record<SubscriptionTier, number> = {
-  'hobby': 14700, // $9.80 * 1500
-  'pro': 14700,
-  'agency': 11000 // Bulk discount for agency
+  'hobby': 50000,
+  'pro': 50000,
+  'agency': 50000
 };
 
 export const permissionService = {
@@ -65,7 +65,7 @@ export const permissionService = {
    * Returns the cost for an additional project
    */
   getAdditionalProjectCost: (tier: SubscriptionTier): number => {
-    return OVERAGE_COSTS[tier] || 14700;
+    return OVERAGE_COSTS[tier] || 50000;
   },
 
   /**

@@ -3,67 +3,70 @@
 
 ## 🏗️ Architecture
 We use a **Split Deployment Strategy** for maximum performance and scalability.
-*   **Backend (API):** Hosted on **Render.com** (Node.js/Express)
-*   **Frontend (UI):** Hosted on **Vercel** (React/Vite)
+*   **Backend (API):** Hosted on **Render.com** or **Heroku** (Node.js/Express)
+*   **Frontend (UI):** Hosted on **Vercel** or **Netlify** (React/Vite)
 *   **Database:** **MongoDB Atlas**
 
 ---
 
-## 🛠️ Step 1: Deploy Backend (Render)
+## 🛠️ Step 1: Deploy Backend (Render/Heroku)
 
 1.  Push your code to a GitHub repository.
-2.  Go to [Render Dashboard](https://dashboard.render.com/) and click **New +** -> **Web Service**.
-3.  Connect your GitHub repo.
-4.  **Configuration:**
+2.  Create a new **Web Service**.
+3.  **Configuration:**
     *   **Runtime:** Node
     *   **Build Command:** `npm install`
     *   **Start Command:** `node server/index.js`
-5.  **Environment Variables (Add these in Render):**
+4.  **Environment Variables (Add these in Dashboard):**
     *   `NODE_ENV`: `production`
     *   `MONGODB_URI`: (Your connection string from MongoDB Atlas)
     *   `API_KEY`: (Your Google Gemini API Key)
-    *   `JWT_SECRET`: (Generate a random string)
-    *   `BANI_WEBHOOK_SECRET`: (or `BANI_PRIVATE_KEY` depending on your Bani dashboard)
-    *   `CLIENT_URL`: (Leave blank for now, come back after Step 2 to add your Vercel URL, e.g. `https://meti-app.vercel.app`)
+    *   `JWT_SECRET`: (Generate a secure random string)
+    *   `RESEND_API_KEY`: (Your Resend.com API Key for emails)
+    *   `BANI_WEBHOOK_SECRET`: (From your Bani Africa dashboard settings)
+    *   `AYRSHARE_API_KEY`: (Optional: For social posting features)
+    *   `CLIENT_URL`: (Leave blank initially, update after Step 2 with Vercel URL)
+    *   `ADMIN_EMAIL`: (Optional: To create a default admin account)
+    *   `ADMIN_PASSWORD`: (Optional: Password for default admin)
 
-6.  Click **Create Web Service**.
-7.  **Copy your Backend URL** (e.g., `https://meti-backend.onrender.com`).
+5.  Deploy the service.
+6.  **Copy your Backend URL** (e.g., `https://meti-backend.onrender.com`).
 
 ---
 
 ## 🎨 Step 2: Deploy Frontend (Vercel)
 
-1.  Go to [Vercel Dashboard](https://vercel.com/new).
-2.  Import the same GitHub repository.
-3.  **Framework Preset:** Vite (Should detect automatically).
-4.  **Environment Variables (Add these in Vercel):**
-    *   `VITE_API_URL`: Paste your Render Backend URL (e.g., `https://meti-backend.onrender.com`). **IMPORTANT:** Do not add a trailing slash.
+1.  Import the same GitHub repository to Vercel.
+2.  **Framework Preset:** Vite (Should detect automatically).
+3.  **Environment Variables (Add these in Vercel):**
+    *   `VITE_API_URL`: Paste your Backend URL from Step 1 (e.g., `https://meti-backend.onrender.com`). **IMPORTANT:** Do not add a trailing slash.
     *   `VITE_BANI_PUBLIC_KEY`: Your Bani Africa Public Key (starts with `pub_...`).
-5.  Click **Deploy**.
-6.  **Copy your Frontend Domain** (e.g., `https://meti-app.vercel.app`).
+4.  Click **Deploy**.
+5.  **Copy your Frontend Domain** (e.g., `https://meti-app.vercel.app`).
 
 ---
 
 ## 🔗 Step 3: Connect & Secure
 
 1.  **Update Backend CORS:**
-    *   Go back to **Render Dashboard** -> Your Service -> **Environment**.
+    *   Go back to your Backend Dashboard (Render/Heroku).
     *   Add/Update `CLIENT_URL` to equal your Vercel Frontend Domain (e.g., `https://meti-app.vercel.app`).
-    *   Render will auto-deploy the change.
+    *   Trigger a re-deploy if it doesn't happen automatically.
 
 2.  **Configure Bani Webhook:**
     *   Go to **Bani Africa Dashboard** -> Settings -> Webhooks.
-    *   Set the Webhook URL to: `https://YOUR-RENDER-URL.onrender.com/api/webhooks/bani`
+    *   Set the Webhook URL to: `https://YOUR-BACKEND-URL.onrender.com/api/webhooks/bani`
     *   Enable events: `payin_successful` (or equivalent).
 
 3.  **Database Access:**
-    *   Ensure your MongoDB Atlas "Network Access" allows connections from `0.0.0.0/0` (Allow Anywhere) or specifically whitelist Render's IP addresses.
+    *   Ensure your MongoDB Atlas "Network Access" allows connections from `0.0.0.0/0` (Allow Anywhere) or specifically whitelist your backend's IP addresses.
 
 ---
 
 ## ✅ Checklist for Live Launch
 
-- [ ] **Payments:** Test the "Starter Plan" project creation fee (₦14,700).
-- [ ] **AI Engine:** Verify Niche and Persona generation works on the live URL.
-- [ ] **Locks:** Verify Pro features are locked for Starter users.
-- [ ] **Webhooks:** Check Render logs to ensure `POST /api/webhooks/bani` returns `200 OK` after a payment.
+- [ ] **Payments:** Test the "Starter Plan" project creation fee (₦50,000) or Plan Upgrades.
+- [ ] **AI Engine:** Verify Niche and Persona generation works on the live URL (ensures Gemini API key is valid).
+- [ ] **Emails:** Check if Resend is delivering ticket notifications and welcome emails.
+- [ ] **Profile Update:** Verify you can change password/name in Settings.
+- [ ] **Webhooks:** Check Backend logs to ensure `POST /api/webhooks/bani` returns `200 OK` after a payment.

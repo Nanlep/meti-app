@@ -65,7 +65,7 @@ We use a **Split Deployment Strategy** for maximum performance and scalability.
 
 ## ✅ Checklist for Live Launch
 
-- [ ] **Payments:** Test the "Starter Plan" project creation fee (₦50,000) or Plan Upgrades.
+- [ ] **Payments:** Test the "Starter Plan" project creation fee (14,700) or Plan Upgrades.
 - [ ] **AI Engine:** Verify Niche and Persona generation works on the live URL (ensures Gemini API key is valid).
 - [ ] **Emails:** Check if Resend is delivering ticket notifications and welcome emails.
 - [ ] **Profile Update:** Verify you can change password/name in Settings.

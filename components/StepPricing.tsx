@@ -70,8 +70,8 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
       price: '₦0',
       period: '/ month',
       description: 'Pay-as-you-go. No monthly commitment.',
-      features: ['Pay Per Project Session', 'AI Persona & Niche Analysis', 'Basic Lead Magnets', 'Ad Engine (Lite)', 'Sales Simulator'],
-      extraInfo: 'Single Session: ₦50,000',
+      features: ['Pay Per Project Session', 'AI Persona & Niche Analysis', 'Basic Lead Magnets', 'Ad Engine (Lite)', 'Sales Simulator', '1 Landing Page Generated'],
+      extraInfo: 'Single Session: ₦14,700',
       cta: 'Current Plan',
       variant: 'outline' as const,
       icon: Star,
@@ -79,28 +79,28 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
     },
     {
       name: 'Pro',
-      price: '₦200,000',
+      price: '₦49,888',
       period: '/ month',
       popular: true,
       description: 'For power users launching multiple campaigns monthly.',
-      features: ['5 Projects Included', 'Full SEO Suite (Audits, Keywords)', 'Real-time Google Maps Leads', 'Live Content Optimization', 'Multi-Channel Ad Engine', 'Landing Page Generator'],
-      extraInfo: 'Additional projects: ₦50,000 / each',
+      features: ['5 Projects Included', 'Basic Features', 'Full SEO Suite (Audits, Keywords)', 'Real-time Google Maps Leads', 'Multi-Channel Ad Engine', '5 Landing Page Generated', 'Email Marketing', 'Sales Simulator'],
+      extraInfo: 'Additional projects: ₦14,700 / each',
       cta: 'Get Pro Access',
       variant: 'primary' as const,
       icon: Zap,
-      action: () => handleSubscribe('Pro', "200000")
+      action: () => handleSubscribe('Pro', "49888")
     },
     {
       name: 'Agency',
-      price: '₦1,000,000',
+      price: '₦298,998',
       period: '/ month',
       description: 'The ultimate OS for scaling agencies managing multiple clients.',
-      features: ['25 Projects Included', 'White-label SEO & Strategy Reports', 'CMS Integrations', '5 Team Member Seats Included', 'Developer API Access'],
-      extraInfo: 'Additional projects: ₦50,000 / each',
+      features: ['25 Projects Included', 'Pro Features', 'White-label SEO & Strategy Reports', 'CMS Integrations', 'Developer API Access', '25 Landing Page Generated', 'Priority Support', 'Dedicated Account Manager'],
+      extraInfo: 'Additional projects: ₦14,700 / each',
       cta: 'Get Agency Access',
       variant: 'secondary' as const,
       icon: Crown,
-      action: () => handleSubscribe('Agency', "1000000")
+      action: () => handleSubscribe('Agency', "298998")
     }
   ];
 
@@ -121,7 +121,7 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-white mb-4">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-5xl font-extrabold text-white tracking-tight">{plan.price}</span>
+                  <span className="text-4xl font-extrabold text-white tracking-tight">{plan.price}</span>
                   <span className="text-slate-500 text-sm font-medium">{plan.period}</span>
                 </div>
                 <p className="text-sm text-slate-400 leading-relaxed mb-6 h-10">{plan.description}</p>

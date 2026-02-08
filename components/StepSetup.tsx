@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button, Card } from './Shared';
-import { ArrowRight, Box, Briefcase, Link as LinkIcon, Lock } from 'lucide-react';
+import { ArrowRight, Box, Link as LinkIcon, Lock } from 'lucide-react';
 
 interface StepSetupProps {
   productName: string;
@@ -23,12 +23,10 @@ interface StepSetupProps {
 export const StepSetup: React.FC<StepSetupProps> = ({
   productName,
   productDescription,
-  clientName,
   productUrl,
   productPrice,
   setProductName,
   setProductDescription,
-  setClientName,
   setProductUrl,
   setProductPrice,
   onNext,
@@ -131,24 +129,6 @@ export const StepSetup: React.FC<StepSetupProps> = ({
                <span className="absolute left-3 top-3.5 text-slate-500 font-sans font-bold text-lg">₦</span>
             </div>
             <p className="text-[10px] text-slate-500 mt-1">Used to calculate potential revenue & ROI (NGN).</p>
-          </div>
-        </div>
-
-        {/* Client Field - Simplified to Text Input */}
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Client Name (Optional)
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={clientName || ''}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Enter Client Name"
-              disabled={isLocked}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 pl-10 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <Briefcase className="absolute left-3 top-3.5 text-slate-500" size={18} />
           </div>
         </div>
 

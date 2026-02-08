@@ -52,6 +52,7 @@ export interface User {
   agencyName?: string; // Custom Branding (Agency Only)
   adBrandLogoUrl?: string; // Brand Asset for Ads (All Users)
   usage: UserUsage; // Added for Cost Control
+  isTestAccount?: boolean; // Flag for test accounts to bypass limits
 }
 
 export interface Client {

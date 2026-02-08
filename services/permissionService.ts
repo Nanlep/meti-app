@@ -18,9 +18,9 @@ export const PROJECT_LIMITS: Record<SubscriptionTier, number> = {
 };
 
 export const OVERAGE_COSTS: Record<SubscriptionTier, number> = {
-  'hobby': 50000,
-  'pro': 50000,
-  'agency': 50000
+  'hobby': 14700,
+  'pro': 14700,
+  'agency': 14700
 };
 
 export const permissionService = {
@@ -65,7 +65,7 @@ export const permissionService = {
    * Returns the cost for an additional project
    */
   getAdditionalProjectCost: (tier: SubscriptionTier): number => {
-    return OVERAGE_COSTS[tier] || 50000;
+    return OVERAGE_COSTS[tier] || 14700;
   },
 
   /**
@@ -74,7 +74,7 @@ export const permissionService = {
    */
   isWithinProjectLimit: (user: User | null, currentCount: number): boolean => {
     if (!user) return false;
-    if (user.role === 'admin') return true;
+    if (user.role === 'admin' || user.isTestAccount) return true;
 
     // If subscription is expired, limit is effectively 0 or locked
     if (user.subscriptionStatus === 'expired') return false;

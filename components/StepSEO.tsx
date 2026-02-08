@@ -251,7 +251,6 @@ export const StepSEO: React.FC<StepSEOProps> = ({
           </div>
         )}
 
-        {/* ... Rest of tabs logic remains unchanged but inside the guard ... */}
         {activeTab === 'audit' && (
           <div className="space-y-6">
              <Card className="bg-slate-800 border-slate-700">
@@ -380,17 +379,19 @@ export const StepSEO: React.FC<StepSEOProps> = ({
                        <tbody className="divide-y divide-slate-800">
                           {seoKeywords.map((kw, i) => (
                              <tr key={i} className="hover:bg-slate-800/40 transition-colors">
-                                <td className="p-4 font-bold text-white">{kw.keyword}</td>
+                                <td className="p-4 font-bold text-white">{kw.keyword || 'Unknown Keyword'}</td>
                                 <td className="p-4">
-                                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-400">{kw.intent.toUpperCase()}</span>
+                                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-400">
+                                     {(kw.intent || 'N/A').toUpperCase()}
+                                   </span>
                                 </td>
-                                <td className="p-4 text-slate-400">{kw.volume}</td>
+                                <td className="p-4 text-slate-400">{kw.volume || 'N/A'}</td>
                                 <td className="p-4">
                                    <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                                      <div className={`h-full rounded-full ${kw.difficulty > 70 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${kw.difficulty}%` }}></div>
+                                      <div className={`h-full rounded-full ${(kw.difficulty || 0) > 70 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${kw.difficulty || 0}%` }}></div>
                                    </div>
                                 </td>
-                                <td className="p-4 text-right text-indigo-400 font-bold">{kw.opportunityScore}%</td>
+                                <td className="p-4 text-right text-indigo-400 font-bold">{kw.opportunityScore || 0}%</td>
                              </tr>
                           ))}
                        </tbody>

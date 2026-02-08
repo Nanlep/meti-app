@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { SectionTitle, Card } from './Shared';
-import { Layers, Target, Users, Magnet, UserPlus, Zap, LayoutTemplate, Crown, Code, Briefcase, Megaphone, CheckSquare, Mail, FileText } from 'lucide-react';
+import { Layers, Target, Users, Magnet, UserPlus, Zap, LayoutTemplate, Crown, Code, Megaphone, CheckSquare, Mail, FileText } from 'lucide-react';
 
 export const StepGuide: React.FC = () => {
   return (
@@ -118,12 +118,7 @@ export const StepGuide: React.FC = () => {
             <span className="bg-amber-500/10 text-amber-400 w-8 h-8 rounded-full flex items-center justify-center text-sm border border-amber-500/20">4</span>
             Agency & Developer Tools
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-             <Card className="bg-slate-800/50 hover:border-amber-500/50 transition-colors">
-              <div className="text-amber-400 mb-3"><Briefcase size={24} /></div>
-              <h4 className="font-bold text-white mb-2">Client CRM</h4>
-              <p className="text-sm text-slate-400">Organize projects by Client. Track status and contact details in the "Clients" tab on the dashboard.</p>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="bg-slate-800/50 hover:border-amber-500/50 transition-colors">
               <div className="text-amber-400 mb-3"><Crown size={24} /></div>
               <h4 className="font-bold text-white mb-2">White-Labeling</h4>

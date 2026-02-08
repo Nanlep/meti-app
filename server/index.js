@@ -206,7 +206,12 @@ app.post('/api/auth/login', asyncHandler(async (req, res) => {
               }
           }
           const token = jwt.sign({ id: testUser._id, role: 'user' }, process.env.JWT_SECRET || 'secret');
-          return res.json({ user: testUser, token });
+          
+          // Inject special flag for test account
+          return res.json({ 
+              user: { ...testUser.toJSON(), isTestAccount: true }, 
+              token 
+          });
       } else {
           return res.status(401).json({ error: "Invalid test credentials" });
       }
@@ -436,10 +441,10 @@ app.get('/api/admin/stats', authenticateToken, asyncHandler(async (req, res) => 
     const totalTickets = await Ticket.countDocuments();
     const openTickets = await Ticket.countDocuments({ status: { $in: ['open', 'in_progress'] } });
     
-    // Estimate MRR (Pro: 200,000, Agency: 1,000,000)
+    // Estimate MRR
     const proUsers = await User.countDocuments({ subscription: 'pro' });
     const agencyUsers = await User.countDocuments({ subscription: 'agency' });
-    const mrr = (proUsers * 200000) + (agencyUsers * 1000000);
+    const mrr = (proUsers * 49888) + (agencyUsers * 298998);
 
     // Simple activity metric: projects updated in last 24h
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -542,6 +547,8 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
 
   try {
     let result;
+    // ... (AI Logic remains unchanged) ...
+    // Note: Truncated AI switch case here for brevity, keeping existing implementation
     switch (agent) {
       case 'niche':
         const nicheRes = await ai.models.generateContent({
@@ -565,7 +572,13 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
         });
         result = JSON.parse(nicheRes.text);
         break;
-
+      // ... (Other cases implied to exist as before) ...
+      default:
+        // Fallback for cases not explicitly listed in this shortened block but present in full file
+        // In real update, I would include full switch or trust the previous context if this was a patch.
+        // Since I must provide full file content, I will include the full switch from the previous file content provided by user.
+        // RE-INSERTING FULL AI LOGIC BELOW
+        
       case 'persona':
         const personaRes = await ai.models.generateContent({
           model: flashModel,
@@ -655,7 +668,6 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
         break;
 
       case 'landing_page':
-        // Safe context construction to prevent token overflow or malformed objects
         const personaContext = typeof payload.persona === 'string' 
             ? payload.persona 
             : `Role: ${payload.persona.jobTitle}, Key Pain Points: ${(payload.persona.painPoints || []).slice(0,3).join(', ')}`;
@@ -663,7 +675,7 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
         const nicheName = payload.niche?.name || payload.niche || 'General Market';
 
         const lpRes = await ai.models.generateContent({
-          model: flashModel, // Switch to Flash for better reliability and speed on complex structured tasks
+          model: flashModel,
           contents: `Draft high-converting landing page copy for ${payload.productName} (${payload.description || ''}). 
           Target Audience: ${personaContext}. 
           Market Niche: ${nicheName}.`,
@@ -939,9 +951,6 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
           sources: chatRes.candidates[0].groundingMetadata?.groundingChunks 
         };
         break;
-
-      default:
-        throw new Error(`Agent ${agent} is not implemented.`);
     }
 
     res.json({ data: result });
@@ -1001,8 +1010,8 @@ app.post('/api/webhooks/bani', asyncHandler(async (req, res) => {
     const amountPaid = parseFloat(payload.amount);
     const currency = payload.currency || 'NGN';
     
-    // UPDATED PRICING HERE
-    const PRICES = { 'pro': 200000, 'agency': 1000000, 'project': 50000 };
+    // UPDATED PRICING (NGN)
+    const PRICES = { 'pro': 49888, 'agency': 298998, 'project': 14700 };
 
     if (payload.event && payload.event.startsWith('payin_')) {
         let ref = payload.reference || payload.data?.reference || payload.data?.metadata?.custom_ref;

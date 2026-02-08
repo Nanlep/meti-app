@@ -57,7 +57,8 @@ export const permissionService = {
   /**
    * Returns the project limit for a specific tier
    */
-  getProjectLimit: (tier: SubscriptionTier): number => {
+  getProjectLimit: (tier: SubscriptionTier, user?: User | null): number => {
+    if (user && (user.role === 'admin' || user.isTestAccount)) return Infinity;
     return PROJECT_LIMITS[tier] || 0;
   },
 

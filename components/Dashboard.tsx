@@ -131,8 +131,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
   };
 
   const ownedCount = projects.filter(p => p.userId === user?.id).length;
-  const projectLimit = permissionService.getProjectLimit(user?.subscription || 'hobby');
-  const isLimitReached = ownedCount >= projectLimit && user?.role !== 'admin';
+  // Pass user to getProjectLimit so it can return Infinity for test accounts
+  const projectLimit = permissionService.getProjectLimit(user?.subscription || 'hobby', user);
+  
+  // Explicitly check for isTestAccount to override limit display logic
+  const isLimitReached = ownedCount >= projectLimit && user?.role !== 'admin' && !user?.isTestAccount;
   const additionalCost = permissionService.getAdditionalProjectCost(user?.subscription || 'hobby');
 
   return (

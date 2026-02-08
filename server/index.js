@@ -33,6 +33,29 @@ const cleanInput = (str) => {
   return str.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, "").slice(0, 5000);
 };
 
+// Helper to consistently format user response and inject system flags
+const enhanceUser = (userDoc) => {
+    // Handle mongoose doc or plain object
+    let u = userDoc.toObject ? userDoc.toObject() : userDoc;
+    
+    // Manual ID transformation if not handled by mongoose virtuals yet
+    if (u._id && !u.id) {
+        u.id = u._id.toString();
+        delete u._id;
+    }
+    delete u.password;
+
+    // Inject Test Account Flag
+    if (process.env.TEST_EMAIL && u.email === process.env.TEST_EMAIL) {
+        u.isTestAccount = true;
+        // Force agency subscription for test account
+        u.subscription = 'agency';
+        u.subscriptionStatus = 'active';
+    }
+    
+    return u;
+};
+
 // --- 3. MIDDLEWARE ---
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -156,7 +179,7 @@ app.post('/api/auth/register', asyncHandler(async (req, res) => {
   
   await user.save();
   const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret');
-  res.json({ user, token });
+  res.json({ user: enhanceUser(user), token });
 }));
 
 app.post('/api/auth/login', asyncHandler(async (req, res) => {
@@ -176,7 +199,7 @@ app.post('/api/auth/login', asyncHandler(async (req, res) => {
               await adminUser.save();
           }
           const token = jwt.sign({ id: adminUser._id, role: 'admin' }, process.env.JWT_SECRET || 'secret');
-          return res.json({ user: adminUser, token });
+          return res.json({ user: enhanceUser(adminUser), token });
       } else {
           return res.status(401).json({ error: "Invalid admin credentials" });
       }
@@ -199,6 +222,7 @@ app.post('/api/auth/login', asyncHandler(async (req, res) => {
               });
               await testUser.save();
           } else {
+              // Enforce agency tier for test user always
               if (testUser.subscription !== 'agency') {
                   testUser.subscription = 'agency';
                   testUser.subscriptionStatus = 'active';
@@ -206,10 +230,8 @@ app.post('/api/auth/login', asyncHandler(async (req, res) => {
               }
           }
           const token = jwt.sign({ id: testUser._id, role: 'user' }, process.env.JWT_SECRET || 'secret');
-          
-          // Inject special flag for test account
           return res.json({ 
-              user: { ...testUser.toJSON(), isTestAccount: true }, 
+              user: enhanceUser(testUser), 
               token 
           });
       } else {
@@ -224,7 +246,7 @@ app.post('/api/auth/login', asyncHandler(async (req, res) => {
   await user.save();
   
   const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret');
-  res.json({ user, token });
+  res.json({ user: enhanceUser(user), token });
 }));
 
 // UPDATE PROFILE
@@ -255,7 +277,7 @@ app.put('/api/auth/profile', authenticateToken, asyncHandler(async (req, res) =>
     }
 
     await user.save();
-    res.json(user);
+    res.json(enhanceUser(user));
 }));
 
 // Projects
@@ -462,7 +484,7 @@ app.get('/api/admin/stats', authenticateToken, asyncHandler(async (req, res) => 
 app.get('/api/admin/users', authenticateToken, asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
     const users = await User.find({}).sort({ lastLogin: -1 });
-    res.json(users);
+    res.json(users.map(u => enhanceUser(u)));
 }));
 
 // --- SOCIAL POSTING (AYRSHARE) ---
@@ -547,8 +569,6 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
 
   try {
     let result;
-    // ... (AI Logic remains unchanged) ...
-    // Note: Truncated AI switch case here for brevity, keeping existing implementation
     switch (agent) {
       case 'niche':
         const nicheRes = await ai.models.generateContent({
@@ -572,13 +592,7 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
         });
         result = JSON.parse(nicheRes.text);
         break;
-      // ... (Other cases implied to exist as before) ...
-      default:
-        // Fallback for cases not explicitly listed in this shortened block but present in full file
-        // In real update, I would include full switch or trust the previous context if this was a patch.
-        // Since I must provide full file content, I will include the full switch from the previous file content provided by user.
-        // RE-INSERTING FULL AI LOGIC BELOW
-        
+      
       case 'persona':
         const personaRes = await ai.models.generateContent({
           model: flashModel,

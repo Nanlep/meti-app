@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button, Card } from './Shared';
-import { Check, Zap, Crown, Loader, CreditCard, PlusCircle, Star, Globe } from 'lucide-react';
+import { Check, Zap, Crown, Loader, CreditCard, PlusCircle, Star, Globe, RefreshCw, Coins } from 'lucide-react';
 import { notify } from '../services/notificationService';
 import { authService } from '../services/authService';
 import useCheckout from 'bani-react';
@@ -13,7 +13,10 @@ interface StepPricingProps {
 
 export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<'NGN' | 'USD'>('NGN');
   const { BaniPopUp } = useCheckout();
+
+  const RATE = 1500; // $1 = N1500
 
   const customerEmail = user?.email || "";
   const customerName = user?.name || "";
@@ -21,15 +24,20 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
   const firstName = nameParts[0] || "Valued";
   const lastName = nameParts.slice(1).join(' ') || "Customer";
 
-  const handleSubscribe = (planName: string, amountNGN: string) => {
+  const formatPrice = (ngn: number) => {
+    if (currency === 'NGN') return `₦${ngn.toLocaleString()}`;
+    return `$${(ngn / RATE).toFixed(2)}`;
+  };
+
+  const handleSubscribe = (planName: string, amountNGN: number) => {
     setProcessingPlan(planName);
     
-    // NGN Only
+    const amount = currency === 'NGN' ? amountNGN.toString() : (amountNGN / RATE).toFixed(2);
     const reference = `METI_${user?.id || 'GUEST'}_${planName.toLowerCase()}_${Date.now()}`;
 
     try {
       BaniPopUp({
-        amount: amountNGN,
+        amount: amount,
         phoneNumber: "08021234567",
         email: customerEmail,
         firstName: firstName,
@@ -38,7 +46,7 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
         metadata: { 
             custom_ref: reference, 
             order_ref: reference,
-            currency: 'NGN'
+            currency: currency
         },
         onClose: handleOnClose,
         callback: (response: any) => handleOnSuccess(response, planName, reference)
@@ -67,11 +75,11 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
   const plans = [
     {
       name: 'Starter', 
-      price: '₦0',
+      price: formatPrice(0),
       period: '/ month',
       description: 'Pay-as-you-go. No monthly commitment.',
       features: ['Pay Per Project Session', 'AI Persona & Niche Analysis', 'Basic Lead Magnets', 'Ad Engine (Lite)', 'Sales Simulator', '1 Landing Page Generated'],
-      extraInfo: 'Single Session: ₦14,700',
+      extraInfo: `Single Session: ${formatPrice(14700)}`,
       cta: 'Current Plan',
       variant: 'outline' as const,
       icon: Star,
@@ -79,28 +87,28 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
     },
     {
       name: 'Pro',
-      price: '₦49,888',
+      price: formatPrice(49888),
       period: '/ month',
       popular: true,
       description: 'For power users launching multiple campaigns monthly.',
       features: ['5 Projects Included', 'Basic Features', 'Full SEO Suite (Audits, Keywords)', 'Real-time Google Maps Leads', 'Multi-Channel Ad Engine', '5 Landing Page Generated', 'Email Marketing', 'Sales Simulator'],
-      extraInfo: 'Additional projects: ₦14,700 / each',
+      extraInfo: `Additional projects: ${formatPrice(14700)} / each`,
       cta: 'Get Pro Access',
       variant: 'primary' as const,
       icon: Zap,
-      action: () => handleSubscribe('Pro', "49888")
+      action: () => handleSubscribe('Pro', 49888)
     },
     {
       name: 'Agency',
-      price: '₦298,998',
+      price: formatPrice(298998),
       period: '/ month',
       description: 'The ultimate OS for scaling agencies managing multiple clients.',
       features: ['25 Projects Included', 'Pro Features', 'White-label SEO & Strategy Reports', 'CMS Integrations', 'Developer API Access', '25 Landing Page Generated', 'Priority Support', 'Dedicated Account Manager'],
-      extraInfo: 'Additional projects: ₦14,700 / each',
+      extraInfo: `Additional projects: ${formatPrice(14700)} / each`,
       cta: 'Get Agency Access',
       variant: 'secondary' as const,
       icon: Crown,
-      action: () => handleSubscribe('Agency', "298998")
+      action: () => handleSubscribe('Agency', 298998)
     }
   ];
 
@@ -108,10 +116,29 @@ export const StepPricing: React.FC<StepPricingProps> = ({ user }) => {
     <div className="max-w-7xl mx-auto animate-fadeIn pb-20">
       <div className="flex flex-col items-center mb-16 relative">
         <h2 className="text-3xl font-bold text-white mb-6">Choose Your Growth Engine</h2>
-        <div className="inline-flex bg-slate-800/50 px-4 py-1 rounded-full border border-slate-700 text-xs text-slate-400 mb-6">
-            <Globe size={12} className="mr-2" /> Regional Pricing: Nigeria (NGN)
+        
+        <div className="flex items-center gap-4 bg-slate-900 p-1.5 rounded-full border border-slate-800 mb-6">
+            <button 
+                onClick={() => setCurrency('NGN')}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${currency === 'NGN' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            >
+                <RefreshCw size={12} className={currency === 'NGN' ? '' : 'opacity-0 w-0'} /> NGN (₦)
+            </button>
+            <button 
+                onClick={() => setCurrency('USD')}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${currency === 'USD' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            >
+                <Globe size={12} className={currency === 'USD' ? '' : 'opacity-0 w-0'} /> USD ($)
+            </button>
         </div>
-        <p className="text-slate-400">Secure payments processed via Bani Africa.</p>
+
+        {currency === 'USD' && (
+            <div className="inline-flex bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 text-xs text-indigo-300 mb-6 items-center gap-2 animate-fadeIn">
+                <Coins size={14} /> Note: USD payments are collected via Crypto (USDT/USDC).
+            </div>
+        )}
+        
+        <p className="text-slate-400 text-sm">Secure payments processed via Bani Africa.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative items-start">

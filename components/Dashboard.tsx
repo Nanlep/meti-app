@@ -4,7 +4,7 @@ import { Project, User } from '../types';
 import { storageService } from '../services/storageService';
 import { authService } from '../services/authService';
 import { Button, Card, Modal, Spinner } from './Shared';
-import { Plus, FolderOpen, Clock, Trash2, ArrowRight, LayoutGrid, Shield, Users, Terminal, Briefcase, Crown, Phone, Mail, Building2, Zap, AlertCircle, Lock, CreditCard, Loader } from 'lucide-react';
+import { Plus, FolderOpen, Clock, Trash2, ArrowRight, LayoutGrid, Shield, Users, Terminal, Briefcase, Crown, Phone, Mail, Building2, Zap, AlertCircle, Lock, CreditCard, Loader, Coins } from 'lucide-react';
 import { SecurityModal } from './SecurityModal';
 import { TeamModal } from './TeamModal';
 import { DeveloperPortal } from './DeveloperPortal';
@@ -29,12 +29,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
   // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentCurrency, setPaymentCurrency] = useState<'NGN' | 'USD'>('NGN');
   
   const [user, setUser] = useState<User | null>(authService.getCurrentUser());
   const { BaniPopUp } = useCheckout();
   
   const isAgency = user?.subscription === 'agency';
   const hasApiAccess = permissionService.hasAccess(user, 'agency');
+  
+  const RATE = 1500;
 
   useEffect(() => {
     loadProjects();
@@ -91,7 +94,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
   const confirmPaymentAndCreate = async () => {
       setProcessingPayment(true);
       
-      const additionalCost = permissionService.getAdditionalProjectCost(user?.subscription || 'hobby');
+      const additionalCostNGN = permissionService.getAdditionalProjectCost(user?.subscription || 'hobby');
+      const amount = paymentCurrency === 'NGN' ? additionalCostNGN.toString() : (additionalCostNGN / RATE).toFixed(2);
+      
       const reference = `METI_${user?.id}_project_${Date.now()}`;
       
       const customerEmail = user?.email || "";
@@ -101,7 +106,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
 
       try {
         BaniPopUp({
-            amount: additionalCost.toString(),
+            amount: amount,
             phoneNumber: "08021234567",
             email: customerEmail,
             firstName: firstName,
@@ -110,7 +115,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
             metadata: {
                 custom_ref: reference,
                 order_ref: reference,
-                type: 'one_time_project'
+                type: 'one_time_project',
+                currency: paymentCurrency
             },
             onClose: (response: any) => {
                 setProcessingPayment(false);
@@ -136,7 +142,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
   
   // Explicitly check for isTestAccount to override limit display logic
   const isLimitReached = ownedCount >= projectLimit && user?.role !== 'admin' && !user?.isTestAccount;
-  const additionalCost = permissionService.getAdditionalProjectCost(user?.subscription || 'hobby');
+  const additionalCostNGN = permissionService.getAdditionalProjectCost(user?.subscription || 'hobby');
+  
+  const displayCost = paymentCurrency === 'NGN' 
+      ? `₦${additionalCostNGN.toLocaleString()}` 
+      : `$${(additionalCostNGN / RATE).toFixed(2)}`;
 
   return (
     <div className="max-w-6xl mx-auto p-6 md:p-12 animate-fadeIn">
@@ -212,12 +222,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateN
                   </p>
                </div>
             </div>
-            <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 flex justify-between items-center">
-               <span className="text-slate-300">One-time Project Fee</span>
-               <span className="text-xl font-bold text-white">₦{additionalCost.toLocaleString()}</span>
+            
+            <div className="flex gap-2 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                <button onClick={() => setPaymentCurrency('NGN')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${paymentCurrency === 'NGN' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-white'}`}>NGN (₦)</button>
+                <button onClick={() => setPaymentCurrency('USD')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${paymentCurrency === 'USD' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-white'}`}>USD ($)</button>
             </div>
+
+            <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+               <div className="flex justify-between items-center">
+                   <span className="text-slate-300">One-time Project Fee</span>
+                   <span className="text-xl font-bold text-white">{displayCost}</span>
+               </div>
+               {paymentCurrency === 'USD' && (
+                   <div className="mt-2 text-[10px] text-indigo-400 flex items-center gap-1">
+                       <Coins size={10} /> Paid via Crypto (USDT/USDC)
+                   </div>
+               )}
+            </div>
+
             <Button onClick={confirmPaymentAndCreate} disabled={processingPayment} className="w-full py-3">
-                {processingPayment ? <Loader className="animate-spin mr-2" /> : `Pay ₦${additionalCost.toLocaleString()} & Create`}
+                {processingPayment ? <Loader className="animate-spin mr-2" /> : `Pay ${displayCost} & Create`}
             </Button>
          </div>
       </Modal>

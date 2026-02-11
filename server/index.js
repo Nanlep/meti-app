@@ -1024,8 +1024,9 @@ app.post('/api/webhooks/bani', asyncHandler(async (req, res) => {
     const amountPaid = parseFloat(payload.amount);
     const currency = payload.currency || 'NGN';
     
-    // UPDATED PRICING (NGN)
-    const PRICES = { 'pro': 49888, 'agency': 298998, 'project': 14700 };
+    // UPDATED PRICING
+    const PRICES_NGN = { 'pro': 49888, 'agency': 298998, 'project': 14700 };
+    const USD_RATE = 1500;
 
     if (payload.event && payload.event.startsWith('payin_')) {
         let ref = payload.reference || payload.data?.reference || payload.data?.metadata?.custom_ref;
@@ -1034,10 +1035,23 @@ app.post('/api/webhooks/bani', asyncHandler(async (req, res) => {
             if (parts.length >= 3) {
                 const userId = parts[1];
                 const type = parts[2];
-                const requiredAmount = PRICES[type];
                 
-                if (currency !== 'NGN' || amountPaid < requiredAmount) {
-                    logger.warn(`Payment Fraud Attempt? User: ${userId}, Paid: ${amountPaid}, Required: ${requiredAmount}`);
+                let requiredAmount = PRICES_NGN[type];
+                
+                if (currency === 'USD') {
+                    // Convert NGN required amount to USD based on fixed rate
+                    requiredAmount = Number((requiredAmount / USD_RATE).toFixed(2));
+                } else if (currency !== 'NGN') {
+                     // Reject unsupported currency or maybe accept if > required in NGN
+                     logger.warn(`Unsupported currency: ${currency}`);
+                     return res.status(200).send("Ignored: Unsupported Currency");
+                }
+                
+                // Allow small floating point epsilon if USD
+                const epsilon = currency === 'USD' ? 0.05 : 0;
+
+                if (amountPaid < (requiredAmount - epsilon)) {
+                    logger.warn(`Payment Fraud Attempt? User: ${userId}, Paid: ${amountPaid} ${currency}, Required: ${requiredAmount}`);
                     return res.status(200).send("Ignored: Insufficient Amount");
                 }
 

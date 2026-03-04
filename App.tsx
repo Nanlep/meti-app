@@ -83,11 +83,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-8 text-center">
-           <div className="max-w-md">
-             <h1 className="text-2xl font-bold mb-4">Application Error</h1>
-             <p className="text-slate-400 mb-6">Something went wrong in this section. Please try refreshing.</p>
-             <button onClick={() => window.location.reload()} className="px-6 py-3 bg-indigo-600 rounded-lg font-bold">Reload App</button>
-           </div>
+          <div className="max-w-md">
+            <h1 className="text-2xl font-bold mb-4">Application Error</h1>
+            <p className="text-slate-400 mb-6">Something went wrong in this section. Please try refreshing.</p>
+            <button onClick={() => window.location.reload()} className="px-6 py-3 bg-indigo-600 rounded-lg font-bold">Reload App</button>
+          </div>
         </div>
       );
     }
@@ -100,11 +100,15 @@ const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.DASHBOARD);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [showAuth, setShowAuth] = useState(false); 
-  
+  const [showAuth, setShowAuth] = useState(() => {
+    // If a reset_token is in the URL, skip the landing page and go straight to Auth
+    const params = new URLSearchParams(window.location.search);
+    return !!params.get('reset_token');
+  });
+
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // New Project Setup State
   const [draftName, setDraftName] = useState('');
   const [draftDesc, setDraftDesc] = useState('');
@@ -143,7 +147,7 @@ const App: React.FC = () => {
     const resetTimer = () => {
       clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
-        if (authService.getCurrentUser()) { 
+        if (authService.getCurrentUser()) {
           handleLogout();
           notify.info("Session expired.");
         }
@@ -195,37 +199,37 @@ const App: React.FC = () => {
 
   const updateProject = async (updates: Partial<ProjectData>) => {
     const activeId = currentProject?.id || (currentProject as any)?._id;
-    
+
     if (!activeId) {
-        console.error("Attempted to update project without valid ID", { currentProject, updates });
-        notify.error("Save failed: Internal project tracking lost. Please refresh the page.");
-        return;
+      console.error("Attempted to update project without valid ID", { currentProject, updates });
+      notify.error("Save failed: Internal project tracking lost. Please refresh the page.");
+      return;
     }
 
     setIsSaving(true);
     try {
-        // IMPORTANT: Merge current data with updates to prevent overwriting existing data
-        const mergedData = { ...currentProject?.data, ...updates };
-        const updated = await storageService.update(activeId, mergedData);
-        if (updated) {
-            setCurrentProject(prev => {
-                if (!prev) return updated;
-                return {
-                    ...prev,
-                    ...updated,
-                    data: { ...prev.data, ...updated.data }
-                };
-            });
-        }
-    } catch (e: any) {
-        console.error("Critical: Storage update operation failed.", { 
-            projectId: activeId, 
-            error: e.message,
-            payload: updates 
+      // IMPORTANT: Merge current data with updates to prevent overwriting existing data
+      const mergedData = { ...currentProject?.data, ...updates };
+      const updated = await storageService.update(activeId, mergedData);
+      if (updated) {
+        setCurrentProject(prev => {
+          if (!prev) return updated;
+          return {
+            ...prev,
+            ...updated,
+            data: { ...prev.data, ...updated.data }
+          };
         });
-        notify.error("Failed to save changes. Please try again or check connection.");
+      }
+    } catch (e: any) {
+      console.error("Critical: Storage update operation failed.", {
+        projectId: activeId,
+        error: e.message,
+        payload: updates
+      });
+      notify.error("Failed to save changes. Please try again or check connection.");
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
@@ -248,7 +252,7 @@ const App: React.FC = () => {
     setDraftClientId(project.clientId || '');
     setDraftUrl(project.data.productUrl || '');
     setDraftPrice(project.data.productPrice || 0);
-    
+
     if (project.data.persona) setCurrentStep(AppStep.CONVERSION);
     else if (project.data.selectedNiche) setCurrentStep(AppStep.PERSONA);
     else if (project.data.productName) setCurrentStep(AppStep.NICHE);
@@ -260,19 +264,19 @@ const App: React.FC = () => {
       try {
         let project = await storageService.create(name, desc, draftClient, draftClientId);
         if (project) {
-             // Robust check: Ensure we have an ID before proceeding
-             const projectId = project.id || (project as any)._id;
-             if (!projectId) throw new Error("Server returned project without valid ID");
-             
-             // Initial update with price/url, merging existing data
-             const mergedData = { 
-               productName: name, 
-               productDescription: desc, 
-               productUrl: url, 
-               productPrice: price 
-             };
-             const updated = await storageService.update(projectId, mergedData);
-             if (updated) project = updated;
+          // Robust check: Ensure we have an ID before proceeding
+          const projectId = project.id || (project as any)._id;
+          if (!projectId) throw new Error("Server returned project without valid ID");
+
+          // Initial update with price/url, merging existing data
+          const mergedData = {
+            productName: name,
+            productDescription: desc,
+            productUrl: url,
+            productPrice: price
+          };
+          const updated = await storageService.update(projectId, mergedData);
+          if (updated) project = updated;
         }
         setCurrentProject(project);
         notify.success("Project Created");
@@ -295,10 +299,10 @@ const App: React.FC = () => {
       <>
         <ToastContainer />
         <Auth onLogin={() => {
-           const u = authService.getCurrentUser();
-           setUser(u);
-           if (u?.role === 'admin') setCurrentStep(AppStep.ADMIN);
-           notify.success(`Welcome back, ${u?.name}`);
+          const u = authService.getCurrentUser();
+          setUser(u);
+          if (u?.role === 'admin') setCurrentStep(AppStep.ADMIN);
+          notify.success(`Welcome back, ${u?.name}`);
         }} />
       </>
     );
@@ -306,7 +310,7 @@ const App: React.FC = () => {
 
   // Ensure daysRemaining is defined here to fix "Cannot find name" error
   const daysRemaining = user && permissionService.getTrialDaysRemaining(user);
-  
+
   // STRICT LOCK: If project exists, it is locked. No editing allowed.
   const isSetupLocked = !!currentProject;
 
@@ -322,14 +326,14 @@ const App: React.FC = () => {
     { id: AppStep.EMAIL, label: 'Email Marketing', icon: Mail, minTier: 'pro' },
     { id: AppStep.LANDING, label: 'Landing Page', icon: LayoutTemplate, minTier: 'hobby' },
     { id: AppStep.REPORT, label: 'Final Report', icon: FileText },
-    { id: AppStep.GUIDE, label: 'Platform Guide', icon: BookOpen }, 
+    { id: AppStep.GUIDE, label: 'Platform Guide', icon: BookOpen },
   ];
 
   const canAccessStep = (stepId: AppStep) => {
     if (stepId === AppStep.PRICING || stepId === AppStep.GUIDE || stepId === AppStep.SETTINGS) return true;
-    if (stepId === AppStep.ADMIN) return user.role === 'admin'; 
+    if (stepId === AppStep.ADMIN) return user.role === 'admin';
     if (!currentProject && stepId !== AppStep.DASHBOARD && stepId !== AppStep.SETUP) return false;
-    return true; 
+    return true;
   };
 
   if (currentStep === AppStep.ADMIN) {
@@ -342,8 +346,8 @@ const App: React.FC = () => {
             <span className="font-bold text-xl text-white tracking-tight">meti <span className="text-red-500 text-xs uppercase ml-1">Controller</span></span>
           </div>
           <div className="flex items-center gap-4">
-             <button onClick={() => setCurrentStep(AppStep.DASHBOARD)} className="text-sm text-slate-400 hover:text-white mr-4">Exit to App</button>
-             <button onClick={handleLogout} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><LogOut size={20} /></button>
+            <button onClick={() => setCurrentStep(AppStep.DASHBOARD)} className="text-sm text-slate-400 hover:text-white mr-4">Exit to App</button>
+            <button onClick={handleLogout} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><LogOut size={20} /></button>
           </div>
         </header>
         <div className="pt-20">
@@ -387,96 +391,96 @@ const App: React.FC = () => {
             </>
           )}
           <div className="mt-6 border-t border-slate-800 pt-4 space-y-1">
-             <button onClick={() => setCurrentStep(AppStep.GUIDE)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${currentStep === AppStep.GUIDE ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50'}`}><BookOpen size={18} /> Platform Guide</button>
-             <button onClick={() => setCurrentStep(AppStep.SETTINGS)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${currentStep === AppStep.SETTINGS ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50'}`}><Settings size={18} /> Settings</button>
-             <button onClick={() => setIsSupportOpen(true)} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white"><HelpCircle size={18} /> Help & Support</button>
+            <button onClick={() => setCurrentStep(AppStep.GUIDE)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${currentStep === AppStep.GUIDE ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50'}`}><BookOpen size={18} /> Platform Guide</button>
+            <button onClick={() => setCurrentStep(AppStep.SETTINGS)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${currentStep === AppStep.SETTINGS ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50'}`}><Settings size={18} /> Settings</button>
+            <button onClick={() => setIsSupportOpen(true)} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white"><HelpCircle size={18} /> Help & Support</button>
           </div>
-           {user.role === 'admin' && <div className="mt-2"><button onClick={() => setCurrentStep(AppStep.ADMIN)} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-red-400 hover:bg-red-500/10"><Shield size={18} /> Platform Admin</button></div>}
+          {user.role === 'admin' && <div className="mt-2"><button onClick={() => setCurrentStep(AppStep.ADMIN)} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-red-400 hover:bg-red-500/10"><Shield size={18} /> Platform Admin</button></div>}
         </nav>
         <div className="p-4 border-t border-slate-800">
-           {daysRemaining !== null && daysRemaining <= 2 && <div className="mb-2 text-xs text-center bg-indigo-900/30 border border-indigo-500/20 rounded p-1.5 text-indigo-300 flex items-center justify-center gap-1"><Clock size={10} /> {daysRemaining} days left</div>}
-           <button onClick={() => setCurrentStep(AppStep.PRICING)} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 p-3 rounded-lg flex items-center gap-3 transition-colors mb-2">
-              <div className="bg-indigo-500/20 p-1.5 rounded text-indigo-400"><Zap size={16} /></div>
-              <div className="text-left"><div className="text-xs font-bold uppercase">Current Plan</div><div className="text-sm text-white font-medium capitalize flex items-center gap-1">{user.subscription}</div></div>
-           </button>
-           <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-slate-300 text-xs py-2"><LogOut size={14} /> Sign Out</button>
+          {daysRemaining !== null && daysRemaining <= 2 && <div className="mb-2 text-xs text-center bg-indigo-900/30 border border-indigo-500/20 rounded p-1.5 text-indigo-300 flex items-center justify-center gap-1"><Clock size={10} /> {daysRemaining} days left</div>}
+          <button onClick={() => setCurrentStep(AppStep.PRICING)} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 p-3 rounded-lg flex items-center gap-3 transition-colors mb-2">
+            <div className="bg-indigo-500/20 p-1.5 rounded text-indigo-400"><Zap size={16} /></div>
+            <div className="text-left"><div className="text-xs font-bold uppercase">Current Plan</div><div className="text-sm text-white font-medium capitalize flex items-center gap-1">{user.subscription}</div></div>
+          </button>
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-slate-300 text-xs py-2"><LogOut size={14} /> Sign Out</button>
         </div>
       </aside>
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <header className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm flex items-center justify-between px-6 md:px-8 z-20 flex-shrink-0">
-           <div className="flex items-center gap-4">
-              {currentProject && <div className="flex items-center gap-2 text-sm text-slate-400"><span className="hidden md:inline">Project:</span><span className="text-white font-medium bg-slate-800 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2">{currentProject.id} - {currentProject.name} {isSaving ? <span className="text-[10px] text-slate-500 animate-pulse">Saving...</span> : <Save size={12} className="text-emerald-500" />}</span></div>}
-              {isOffline && <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20"><WifiOff size={12} /> OFFLINE</div>}
-           </div>
-           <div className="flex items-center gap-4">
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full border flex items-center gap-2 ${user.subscription === 'agency' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : user.subscription === 'pro' ? 'bg-emerald-500/10 text-emerald-400 border-amber-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                {user.subscription === 'agency' && <Crown size={12} />}
-                {user.subscription === 'pro' && <Zap size={12} />}
-                {user.subscription === 'hobby' && <Star size={12} />}
-                {user.subscription.toUpperCase()}
-              </span>
-              
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border-2 border-slate-800 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={() => setCurrentStep(AppStep.SETTINGS)}></div>
-           </div>
+          <div className="flex items-center gap-4">
+            {currentProject && <div className="flex items-center gap-2 text-sm text-slate-400"><span className="hidden md:inline">Project:</span><span className="text-white font-medium bg-slate-800 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2">{currentProject.id} - {currentProject.name} {isSaving ? <span className="text-[10px] text-slate-500 animate-pulse">Saving...</span> : <Save size={12} className="text-emerald-500" />}</span></div>}
+            {isOffline && <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20"><WifiOff size={12} /> OFFLINE</div>}
+          </div>
+          <div className="flex items-center gap-4">
+            <span className={`text-xs font-bold px-3 py-1.5 rounded-full border flex items-center gap-2 ${user.subscription === 'agency' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : user.subscription === 'pro' ? 'bg-emerald-500/10 text-emerald-400 border-amber-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+              {user.subscription === 'agency' && <Crown size={12} />}
+              {user.subscription === 'pro' && <Zap size={12} />}
+              {user.subscription === 'hobby' && <Star size={12} />}
+              {user.subscription.toUpperCase()}
+            </span>
+
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border-2 border-slate-800 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={() => setCurrentStep(AppStep.SETTINGS)}></div>
+          </div>
         </header>
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 pb-32">
-           <ErrorBoundary>
-             <Suspense fallback={<PageLoader />}>
-               {currentStep === AppStep.DASHBOARD && <Dashboard onSelectProject={handleSelectProject} onCreateNew={handleCreateProject} onOpenAdmin={() => setCurrentStep(AppStep.ADMIN)} onUpgrade={() => setCurrentStep(AppStep.PRICING)} />}
-               {currentStep === AppStep.SETUP && <StepSetup productName={draftName} productDescription={draftDesc} clientName={draftClient} clientId={draftClientId} productUrl={draftUrl} productPrice={draftPrice} setProductName={setDraftName} setProductDescription={setDraftDesc} setClientName={setDraftClient} setClientId={setDraftClientId} setProductUrl={setDraftUrl} setProductPrice={setDraftPrice} onNext={() => handleSetupComplete(draftName, draftDesc, draftUrl, draftPrice)} isLocked={isSetupLocked} />}
-               {currentStep === AppStep.GUIDE && <StepGuide />}
-               {currentStep === AppStep.SETTINGS && <StepSettings user={user} onUserUpdate={setUser} />}
-               {currentProject && (
-                 <>
-                   {currentStep === AppStep.NICHE && <StepNiche productName={data.productName} productDescription={data.productDescription} onSelect={(niche) => { updateProject({ selectedNiche: niche }); setCurrentStep(AppStep.PERSONA); }} selectedNiche={data.selectedNiche} />}
-                   
-                   {currentStep === AppStep.PERSONA && (
-                     data.selectedNiche ? 
-                     <StepPersona productName={data.productName} niche={data.selectedNiche} onPersonaGenerated={(persona) => { updateProject({ persona }); }} existingPersona={data.persona} productDescription={data.productDescription} /> :
-                     <MissingPrereq title="Strategy Incomplete" message="Please select a target Niche before defining a Persona." action={() => setCurrentStep(AppStep.NICHE)} actionLabel="Select Niche" />
-                   )}
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              {currentStep === AppStep.DASHBOARD && <Dashboard onSelectProject={handleSelectProject} onCreateNew={handleCreateProject} onOpenAdmin={() => setCurrentStep(AppStep.ADMIN)} onUpgrade={() => setCurrentStep(AppStep.PRICING)} />}
+              {currentStep === AppStep.SETUP && <StepSetup productName={draftName} productDescription={draftDesc} clientName={draftClient} clientId={draftClientId} productUrl={draftUrl} productPrice={draftPrice} setProductName={setDraftName} setProductDescription={setDraftDesc} setClientName={setDraftClient} setClientId={setDraftClientId} setProductUrl={setDraftUrl} setProductPrice={setDraftPrice} onNext={() => handleSetupComplete(draftName, draftDesc, draftUrl, draftPrice)} isLocked={isSetupLocked} />}
+              {currentStep === AppStep.GUIDE && <StepGuide />}
+              {currentStep === AppStep.SETTINGS && <StepSettings user={user} onUserUpdate={setUser} />}
+              {currentProject && (
+                <>
+                  {currentStep === AppStep.NICHE && <StepNiche productName={data.productName} productDescription={data.productDescription} onSelect={(niche) => { updateProject({ selectedNiche: niche }); setCurrentStep(AppStep.PERSONA); }} selectedNiche={data.selectedNiche} />}
 
-                   {currentStep === AppStep.MAGNETS && (
-                     (data.selectedNiche && data.persona) ?
-                     <StepMagnets productName={data.productName} nicheName={data.selectedNiche.name} persona={data.persona} onUpdateMagnets={(magnets) => updateProject({ generatedMagnets: magnets })} magnets={data.generatedMagnets || []} connectedPlatforms={data.connectedPlatforms || []} productDescription={data.productDescription} /> :
-                     <MissingPrereq title="Prerequisites Missing" message="You need to select a Niche and generate a Persona first." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
-                   )}
+                  {currentStep === AppStep.PERSONA && (
+                    data.selectedNiche ?
+                      <StepPersona productName={data.productName} niche={data.selectedNiche} onPersonaGenerated={(persona) => { updateProject({ persona }); }} existingPersona={data.persona} productDescription={data.productDescription} /> :
+                      <MissingPrereq title="Strategy Incomplete" message="Please select a target Niche before defining a Persona." action={() => setCurrentStep(AppStep.NICHE)} actionLabel="Select Niche" />
+                  )}
 
-                   {currentStep === AppStep.CONVERSION && (
-                     (data.selectedNiche && data.persona) ?
-                     <StepConversion 
+                  {currentStep === AppStep.MAGNETS && (
+                    (data.selectedNiche && data.persona) ?
+                      <StepMagnets productName={data.productName} nicheName={data.selectedNiche.name} persona={data.persona} onUpdateMagnets={(magnets) => updateProject({ generatedMagnets: magnets })} magnets={data.generatedMagnets || []} connectedPlatforms={data.connectedPlatforms || []} productDescription={data.productDescription} /> :
+                      <MissingPrereq title="Prerequisites Missing" message="You need to select a Niche and generate a Persona first." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
+                  )}
+
+                  {currentStep === AppStep.CONVERSION && (
+                    (data.selectedNiche && data.persona) ?
+                      <StepConversion
                         data={data}
                         onUpdate={updateProject}
                         user={user}
                         onUpgrade={() => setCurrentStep(AppStep.PRICING)}
-                     /> :
-                     <MissingPrereq title="Access Denied" message="Define your Target Audience (Niche & Persona) to enable the Conversion Engine." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
-                   )}
+                      /> :
+                      <MissingPrereq title="Access Denied" message="Define your Target Audience (Niche & Persona) to enable the Conversion Engine." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
+                  )}
 
-                   {currentStep === AppStep.CRM && (
-                     <StepCRM 
-                        data={data}
-                        onUpdateLeads={(leads) => updateProject({ crmLeads: leads })}
-                        onUpdateConnections={(crms) => updateProject({ connectedCrms: crms })}
-                     />
-                   )}
+                  {currentStep === AppStep.CRM && (
+                    <StepCRM
+                      data={data}
+                      onUpdateLeads={(leads) => updateProject({ crmLeads: leads })}
+                      onUpdateConnections={(crms) => updateProject({ connectedCrms: crms })}
+                    />
+                  )}
 
-                   {currentStep === AppStep.ADS && (
-                     (data.selectedNiche && data.persona) ?
-                     <StepAds productName={data.productName} niche={data.selectedNiche} persona={data.persona} ads={data.adCampaigns || []} onUpdateAds={(ads) => updateProject({ adCampaigns: ads })} connectedPlatforms={data.connectedPlatforms || []} onUpdateConnectedPlatforms={(platforms) => updateProject({ connectedPlatforms: platforms })} productUrl={data.productUrl} productPrice={data.productPrice} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} productDescription={data.productDescription} /> :
-                     <MissingPrereq title="Ad Engine Locked" message="Define your audience to generate targeted ad campaigns." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
-                   )}
+                  {currentStep === AppStep.ADS && (
+                    (data.selectedNiche && data.persona) ?
+                      <StepAds productName={data.productName} niche={data.selectedNiche} persona={data.persona} ads={data.adCampaigns || []} onUpdateAds={(ads) => updateProject({ adCampaigns: ads })} connectedPlatforms={data.connectedPlatforms || []} onUpdateConnectedPlatforms={(platforms) => updateProject({ connectedPlatforms: platforms })} productUrl={data.productUrl} productPrice={data.productPrice} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} productDescription={data.productDescription} /> :
+                      <MissingPrereq title="Ad Engine Locked" message="Define your audience to generate targeted ad campaigns." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
+                  )}
 
-                   {currentStep === AppStep.SEO && (
-                     (data.selectedNiche && data.persona) ?
-                     <StepSEO productName={data.productName} niche={data.selectedNiche} persona={data.persona} productUrl={data.productUrl} seoKeywords={data.seoKeywords || []} seoAuditResults={data.seoAuditResults || []} seoContentAnalysis={data.seoContentAnalysis} onUpdate={(updates) => updateProject(updates)} user={user} productDescription={data.productDescription} /> :
-                     <MissingPrereq title="SEO Suite Locked" message="Target keywords depend on your Niche and Persona." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
-                   )}
+                  {currentStep === AppStep.SEO && (
+                    (data.selectedNiche && data.persona) ?
+                      <StepSEO productName={data.productName} niche={data.selectedNiche} persona={data.persona} productUrl={data.productUrl} seoKeywords={data.seoKeywords || []} seoAuditResults={data.seoAuditResults || []} seoContentAnalysis={data.seoContentAnalysis} onUpdate={(updates) => updateProject(updates)} user={user} productDescription={data.productDescription} /> :
+                      <MissingPrereq title="SEO Suite Locked" message="Target keywords depend on your Niche and Persona." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
+                  )}
 
-                   {/* Email Marketing Step */}
-                   {currentStep === AppStep.EMAIL && (
-                     (data.persona) ?
-                     <StepEmail 
+                  {/* Email Marketing Step */}
+                  {currentStep === AppStep.EMAIL && (
+                    (data.persona) ?
+                      <StepEmail
                         productName={data.productName}
                         persona={data.persona}
                         campaigns={data.emailCampaigns || []}
@@ -491,22 +495,22 @@ const App: React.FC = () => {
                         user={user}
                         onUpgrade={() => setCurrentStep(AppStep.PRICING)}
                         productDescription={data.productDescription}
-                     /> :
-                     <MissingPrereq title="Email Engine Locked" message="We need a Persona to write effective email copy." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
-                   )}
+                      /> :
+                      <MissingPrereq title="Email Engine Locked" message="We need a Persona to write effective email copy." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
+                  )}
 
-                   {currentStep === AppStep.LANDING && (
-                     (data.selectedNiche && data.persona) ?
-                     <StepLanding productName={data.productName} niche={data.selectedNiche} persona={data.persona} landingPage={data.landingPage} onUpdate={(lp) => updateProject({ landingPage: lp })} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} productDescription={data.productDescription} /> :
-                     <MissingPrereq title="Builder Locked" message="Landing pages require a Niche and Persona context." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
-                   )}
+                  {currentStep === AppStep.LANDING && (
+                    (data.selectedNiche && data.persona) ?
+                      <StepLanding productName={data.productName} niche={data.selectedNiche} persona={data.persona} landingPage={data.landingPage} onUpdate={(lp) => updateProject({ landingPage: lp })} user={user} onUpgrade={() => setCurrentStep(AppStep.PRICING)} productDescription={data.productDescription} /> :
+                      <MissingPrereq title="Builder Locked" message="Landing pages require a Niche and Persona context." action={() => setCurrentStep(data.selectedNiche ? AppStep.PERSONA : AppStep.NICHE)} />
+                  )}
 
-                   {currentStep === AppStep.REPORT && <StepReport data={data} />}
-                 </>
-               )}
-               {currentStep === AppStep.PRICING && <StepPricing user={user} />}
-             </Suspense>
-           </ErrorBoundary>
+                  {currentStep === AppStep.REPORT && <StepReport data={data} />}
+                </>
+              )}
+              {currentStep === AppStep.PRICING && <StepPricing user={user} />}
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
       {isSupportOpen && <SupportModal isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} user={user} />}

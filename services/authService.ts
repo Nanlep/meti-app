@@ -10,20 +10,20 @@ const STORAGE_TOKEN_KEY = 'meti_jwt_token';
 export const getApiUrl = () => {
   // @ts-ignore
   const envUrl = import.meta.env?.VITE_API_URL;
-  
+
   if (envUrl) {
     return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
   }
-  
+
   if (typeof window !== 'undefined') {
-      const { hostname, port } = window.location;
-      
-      // Local development (Vite dev server)
-      if (port === '5173') {
-          return 'http://localhost:3000';
-      }
+    const { hostname, port } = window.location;
+
+    // Local development (Vite dev server)
+    if (port === '5173') {
+      return 'http://localhost:3000';
+    }
   }
-  
+
   // Fallback to relative path for unified hosting
   return '';
 };
@@ -44,7 +44,7 @@ export const authService = {
     const data = await response.json();
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(data.user));
     if (data.token) {
-        localStorage.setItem(STORAGE_TOKEN_KEY, data.token);
+      localStorage.setItem(STORAGE_TOKEN_KEY, data.token);
     }
     return data.user;
   },
@@ -64,7 +64,7 @@ export const authService = {
     const data = await response.json();
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(data.user));
     if (data.token) {
-        localStorage.setItem(STORAGE_TOKEN_KEY, data.token);
+      localStorage.setItem(STORAGE_TOKEN_KEY, data.token);
     }
     return data.user;
   },
@@ -102,29 +102,59 @@ export const authService = {
     }
     return null;
   },
-  
+
   refreshSession: () => authService.getCurrentUser(),
-  
+
   updateProfile: async (userId: string, data: any): Promise<User> => {
-      const token = authService.getToken();
-      if (!token) throw new Error("Not authenticated");
+    const token = authService.getToken();
+    if (!token) throw new Error("Not authenticated");
 
-      const response = await fetch(`${getApiUrl()}/api/auth/profile`, {
-          method: 'PUT',
-          headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(data)
-      });
+    const response = await fetch(`${getApiUrl()}/api/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
 
-      if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to update profile");
-      }
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to update profile");
+    }
 
-      const updatedUser = await response.json();
-      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(updatedUser));
-      return updatedUser;
+    const updatedUser = await response.json();
+    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
+  },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const response = await fetch(`${getApiUrl()}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Failed to send reset link' }));
+      throw new Error(err.error || 'Failed to send reset link');
+    }
+
+    return response.json();
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await fetch(`${getApiUrl()}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Failed to reset password' }));
+      throw new Error(err.error || 'Failed to reset password');
+    }
+
+    return response.json();
   }
 };

@@ -99,7 +99,10 @@ const UserSchema = new mongoose.Schema({
   // Branding Fields
   agencyLogoUrl: { type: String },
   agencyName: { type: String },
-  adBrandLogoUrl: { type: String }
+  adBrandLogoUrl: { type: String },
+  // Password Reset Fields
+  resetToken: { type: String },
+  resetTokenExpiry: { type: Date }
 }, schemaOptions);
 
 const ProjectSchema = new mongoose.Schema({
@@ -247,6 +250,99 @@ app.post('/api/auth/login', asyncHandler(async (req, res) => {
 
   const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret');
   res.json({ user: enhanceUser(user), token });
+}));
+
+// FORGOT PASSWORD - Request Reset Link
+app.post('/api/auth/forgot-password', asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  // Always return success to prevent email enumeration
+  const genericMsg = 'If an account with that email exists, a password reset link has been sent.';
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.json({ message: genericMsg });
+  }
+
+  // Generate a secure reset token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  user.resetToken = resetToken;
+  user.resetTokenExpiry = resetTokenExpiry;
+  await user.save();
+
+  // Build the reset link
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const resetLink = `${clientUrl}?reset_token=${resetToken}`;
+
+  // Send Email via Resend
+  if (resend) {
+    try {
+      await resend.emails.send({
+        from: process.env.SUPPORT_FROM_EMAIL || 'onboarding@resend.dev',
+        to: email,
+        subject: 'Reset Your Meti Password',
+        html: `
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #0f172a; padding: 40px; border-radius: 12px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <h1 style="color: #fff; font-size: 28px; margin: 0;">meti</h1>
+              <p style="color: #6366f1; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin: 4px 0 0;">Marketing Intelligence</p>
+            </div>
+            <h2 style="color: #e2e8f0; font-size: 20px; margin-bottom: 16px;">Password Reset Request</h2>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">We received a request to reset the password for the account associated with <strong style="color: #e2e8f0;">${email}</strong>.</p>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">Click the button below to set a new password. This link expires in <strong style="color: #e2e8f0;">1 hour</strong>.</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${resetLink}" style="display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px;">Reset Password</a>
+            </div>
+            <p style="color: #64748b; font-size: 12px; line-height: 1.5;">If you didn't request this, you can safely ignore this email. Your password will not change.</p>
+            <hr style="border: none; border-top: 1px solid #1e293b; margin: 24px 0;" />
+            <p style="color: #475569; font-size: 11px; text-align: center;">If the button doesn't work, copy this link: <br/><a href="${resetLink}" style="color: #6366f1; word-break: break-all;">${resetLink}</a></p>
+          </div>
+        `
+      });
+      logger.info(`Password reset email sent to ${email}`);
+    } catch (emailError) {
+      logger.error('Failed to send password reset email', emailError);
+      return res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
+    }
+  } else {
+    logger.warn('Resend not configured - password reset email could not be sent');
+    return res.status(503).json({ error: 'Email service is not configured. Please contact support.' });
+  }
+
+  res.json({ message: genericMsg });
+}));
+
+// RESET PASSWORD - Set New Password with Token
+app.post('/api/auth/reset-password', asyncHandler(async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token and new password are required.' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+
+  const user = await User.findOne({
+    resetToken: token,
+    resetTokenExpiry: { $gt: new Date() }
+  });
+
+  if (!user) {
+    return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+  }
+
+  // Set new password and clear reset token
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.resetToken = undefined;
+  user.resetTokenExpiry = undefined;
+  await user.save();
+
+  logger.info(`Password reset successful for ${user.email}`);
+  res.json({ message: 'Password has been reset successfully. You can now log in.' });
 }));
 
 // UPDATE PROFILE

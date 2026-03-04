@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { Button, Card } from './Shared';
-import { Shield, Lock, Mail, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Shield, Lock, Mail, AlertTriangle, ArrowLeft, KeyRound } from 'lucide-react';
 import { LegalDocs } from './LegalDocs';
 import { Logo } from './Logo';
 
@@ -11,13 +11,27 @@ interface AuthProps {
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
+  const [view, setView] = useState<'login' | 'register' | 'forgot' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showLegal, setShowLegal] = useState<'privacy' | 'terms' | null>(null);
+
+  // Check URL for reset_token on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reset_token');
+    if (token) {
+      setResetToken(token);
+      setView('reset');
+      // Clean the URL without reloading
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,9 +41,30 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
     try {
       if (view === 'forgot') {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          setSuccess('If an account exists, a reset link has been sent.');
+        const result = await authService.forgotPassword(email);
+        setSuccess(result.message || 'If an account exists, a reset link has been sent to your email.');
+        return;
+      }
+
+      if (view === 'reset') {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match.');
           return;
+        }
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters.');
+          return;
+        }
+        const result = await authService.resetPassword(resetToken, password);
+        setSuccess(result.message || 'Password has been reset successfully.');
+        // Switch to login after short delay
+        setTimeout(() => {
+          setView('login');
+          setSuccess('');
+          setPassword('');
+          setConfirmPassword('');
+        }, 3000);
+        return;
       }
 
       if (view === 'login') {
@@ -42,6 +77,24 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       setError(err.message || 'Authentication failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getTitle = () => {
+    switch (view) {
+      case 'login': return 'Sign In';
+      case 'register': return 'Create Account';
+      case 'forgot': return 'Reset Password';
+      case 'reset': return 'Set New Password';
+    }
+  };
+
+  const getButtonLabel = () => {
+    switch (view) {
+      case 'login': return 'Sign In';
+      case 'register': return 'Create Account';
+      case 'forgot': return 'Send Reset Link';
+      case 'reset': return 'Reset Password';
     }
   };
 
@@ -60,43 +113,69 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <Card className="w-full max-w-md backdrop-blur-xl bg-slate-900/80 border-slate-800 shadow-2xl relative">
         <div className="text-center mb-6">
           <h2 className="text-xl font-semibold text-white">
-            {view === 'login' ? 'Sign In' : view === 'register' ? 'Create Account' : 'Reset Password'}
+            {getTitle()}
           </h2>
           <p className="text-xs text-slate-500 mt-1 flex items-center justify-center gap-1">
-             <Lock size={10} /> ISO 27001 Secured
+            <Lock size={10} /> ISO 27001 Secured
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Work Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-slate-500" size={16} />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                placeholder="name@company.com"
-                required
-              />
-            </div>
-          </div>
-
-          {view !== 'forgot' && (
+          {/* Email field - shown for login, register, forgot (not reset) */}
+          {view !== 'reset' && (
             <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Password</label>
-                <div className="relative">
+              <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Work Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 text-slate-500" size={16} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  placeholder="name@company.com"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Password field - shown for login, register, reset (not forgot) */}
+          {(view === 'login' || view === 'register' || view === 'reset') && (
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">
+                {view === 'reset' ? 'New Password' : 'Password'}
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-3 text-slate-500" size={16} />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  placeholder="••••••••••••"
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Confirm password - only for reset */}
+          {view === 'reset' && (
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Confirm Password</label>
+              <div className="relative">
                 <Lock className="absolute left-3 top-3 text-slate-500" size={16} />
                 <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                    placeholder="••••••••••••"
-                    required
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  placeholder="••••••••••••"
+                  required
+                  minLength={6}
                 />
-                </div>
+              </div>
             </div>
           )}
 
@@ -104,30 +183,30 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           {success && <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-400 text-center">{success}</div>}
 
           <Button type="submit" className="w-full py-3 mt-2" isLoading={loading}>
-            {view === 'login' ? 'Sign In' : view === 'register' ? 'Create Account' : 'Send Reset Link'}
+            {getButtonLabel()}
           </Button>
         </form>
 
         <div className="mt-6 pt-6 border-t border-slate-800 text-center space-y-3">
-            {view === 'login' && (
-                <>
-                    <button onClick={() => setView('forgot')} className="text-xs text-slate-500 hover:text-white block mx-auto">Forgot password?</button>
-                    <p className="text-sm text-slate-400">
-                        Don't have an account? <button onClick={() => { setView('register'); setError(''); }} className="ml-2 text-indigo-400 hover:text-white font-medium">Sign up</button>
-                    </p>
-                </>
-            )}
-            {view === 'register' && (
-                <p className="text-sm text-slate-400">
-                    Already have an account? <button onClick={() => { setView('login'); setError(''); }} className="ml-2 text-indigo-400 hover:text-white font-medium">Log in</button>
-                </p>
-            )}
-            {view === 'forgot' && (
-                <button onClick={() => { setView('login'); setError(''); }} className="flex items-center justify-center gap-2 mx-auto text-sm text-indigo-400 hover:text-white"><ArrowLeft size={14} /> Back to Login</button>
-            )}
+          {view === 'login' && (
+            <>
+              <button onClick={() => { setView('forgot'); setError(''); setSuccess(''); }} className="text-xs text-slate-500 hover:text-white block mx-auto">Forgot password?</button>
+              <p className="text-sm text-slate-400">
+                Don't have an account? <button onClick={() => { setView('register'); setError(''); setSuccess(''); }} className="ml-2 text-indigo-400 hover:text-white font-medium">Sign up</button>
+              </p>
+            </>
+          )}
+          {view === 'register' && (
+            <p className="text-sm text-slate-400">
+              Already have an account? <button onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="ml-2 text-indigo-400 hover:text-white font-medium">Log in</button>
+            </p>
+          )}
+          {(view === 'forgot' || view === 'reset') && (
+            <button onClick={() => { setView('login'); setError(''); setSuccess(''); setPassword(''); setConfirmPassword(''); }} className="flex items-center justify-center gap-2 mx-auto text-sm text-indigo-400 hover:text-white"><ArrowLeft size={14} /> Back to Login</button>
+          )}
         </div>
       </Card>
-      
+
       <div className="mt-8 text-center space-y-4">
         <div className="flex justify-center gap-4 text-xs text-slate-500">
           <button onClick={() => setShowLegal('terms')} className="hover:text-slate-300">Terms</button>

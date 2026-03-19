@@ -421,6 +421,13 @@ app.get('/api/projects/:id', authenticateToken, asyncHandler(async (req, res) =>
   res.json(project);
 }));
 
+app.delete('/api/projects/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const project = await Project.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+  if (!project) return res.status(404).json({ error: "Project not found or unauthorized" });
+  logger.info(`Project ${req.params.id} deleted by user ${req.user.id}`);
+  res.json({ success: true, message: "Project deleted" });
+}));
+
 // --- TICKET ROUTES ---
 
 // Create Ticket

@@ -34,6 +34,9 @@ export const permissionService = {
     // Admin always has access (Master Key)
     if (user.role === 'admin') return true;
 
+    // Test/Sandbox accounts always have full access (bypass all payment gates)
+    if (user.isTestAccount) return true;
+
     // Check for Expired Status
     if (user.subscriptionStatus === 'expired') {
         return false;

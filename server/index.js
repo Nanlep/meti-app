@@ -666,9 +666,9 @@ app.post('/api/ai/execute', authenticateToken, asyncHandler(async (req, res) => 
   const { agent, payload } = req.body;
   if (!agent) return res.status(400).json({ error: "Agent required" });
 
-  const flashModel = 'gemini-3-flash-preview';
-  const proModel = 'gemini-3-pro-preview';
-  const mapsModel = 'gemini-2.5-flash';
+  const flashModel = 'gemini-3-flash';
+  const proModel = 'gemini-3.1-pro-preview';
+  const mapsModel = 'gemini-3-flash';
 
   try {
     let result;
@@ -1085,7 +1085,7 @@ app.post('/api/ai/stream', authenticateToken, asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  const modelId = 'gemini-3-pro-preview';
+  const modelId = 'gemini-3.1-pro-preview';
 
   try {
     const chat = ai.chats.create({
